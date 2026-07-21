@@ -64,25 +64,34 @@ function Swatch({ color }: { color: string }) {
   );
 }
 
-export function BiplaneWheel({
-  theme,
-  workspaceSlug,
-  projectId,
-}: {
-  theme: "light" | "dark";
-  workspaceSlug: string;
-  projectId: string;
-}) {
+// Derive the current workspace slug + project id from the URL — Plane's project routes are
+// `/<workspaceSlug>/projects/<projectId>/...`. Project-level context (the natural home for the
+// module-lane wheel); returns null when not on a project page.
+function currentContext(): { ws: string; project: string } | null {
+  const m = /\/([^/]+)\/projects\/([0-9a-fA-F-]{36})/.exec(
+    typeof window === "undefined" ? "" : window.location.pathname,
+  );
+  return m ? { ws: m[1]!, project: m[2]! } : null;
+}
+
+export function BiplaneWheel({ theme }: { theme: "light" | "dark" }) {
   const [model, setModel] = useState<WheelModel | null>(null);
   const [svg, setSvg] = useState("");
   const [err, setErr] = useState<string | null>(null);
+  const [noProject, setNoProject] = useState(false);
 
   useEffect(() => {
     let alive = true;
     const tick = async () => {
+      const ctx = currentContext();
+      if (!ctx) {
+        if (alive) setNoProject(true);
+        return;
+      }
       try {
-        const issues = await loadIssues(workspaceSlug, projectId);
+        const issues = await loadIssues(ctx.ws, ctx.project);
         if (!alive) return;
+        setNoProject(false);
         const m = buildWheelModel(issues);
         setModel(m);
         setSvg(renderWheelSVG(m, theme));
@@ -97,7 +106,15 @@ export function BiplaneWheel({
       alive = false;
       clearInterval(id);
     };
-  }, [theme, workspaceSlug, projectId]);
+  }, [theme]);
+
+  if (noProject) {
+    return (
+      <div style={{ padding: 20, color: theme === "light" ? "#5b6673" : "#9aa6b2", fontSize: 13 }}>
+        Open a project to see its wheel.
+      </div>
+    );
+  }
 
   const mut = theme === "light" ? "#5b6673" : "#9aa6b2";
   const hasMovement = !!model?.slices.some((s) => s.changed);
