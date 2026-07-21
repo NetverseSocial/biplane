@@ -5,8 +5,11 @@
  */
 
 import { observer } from "mobx-react";
+import { useEffect } from "react";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
+// biplane
+import { biplaneConfig } from "@/biplane-config";
 // plane constants
 import { ISSUE_DISPLAY_FILTERS_BY_PAGE, PROJECT_VIEW_TRACKER_ELEMENTS } from "@plane/constants";
 import { EIssueLayoutTypes, EIssuesStoreType } from "@plane/types";
@@ -62,6 +65,28 @@ export const ProjectLayoutRoot = observer(function ProjectLayoutRoot() {
     },
     { revalidateIfStale: false, revalidateOnFocus: false }
   );
+
+  // biplane: config-gated background refetch (see /biplane-config.json) so changes made by
+  // agents/other users appear on screen without any interaction. Uses the store's
+  // existing-pagination refetch with the "mutation" loader — no store clear, no full spinner.
+  useEffect(() => {
+    let timer: ReturnType<typeof setInterval> | undefined;
+    let alive = true;
+    if (workspaceSlug && projectId) {
+      biplaneConfig().then((cfg) => {
+        if (!alive || !cfg.boardAutoRefresh) return;
+        timer = setInterval(() => {
+          if (document.visibilityState === "visible") {
+            issues?.fetchIssuesWithExistingPagination(workspaceSlug, projectId, "mutation")?.catch(() => {});
+          }
+        }, cfg.boardRefreshMs);
+      });
+    }
+    return () => {
+      alive = false;
+      if (timer) clearInterval(timer);
+    };
+  }, [issues, workspaceSlug, projectId]);
 
   if (!workspaceSlug || !projectId || !workItemFilters) return <></>;
   return (
