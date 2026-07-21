@@ -4,7 +4,9 @@
  * See the LICENSE file for details.
  */
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+// biplane
+import { biplaneConfig } from "@/biplane-config";
 import { isEmpty } from "lodash-es";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
@@ -56,8 +58,32 @@ export const CycleLayoutRoot = observer(function CycleLayoutRoot() {
   const projectId = routerProjectId ? routerProjectId.toString() : undefined;
   const cycleId = routerCycleId ? routerCycleId.toString() : undefined;
   // store hooks
-  const { issuesFilter } = useIssues(EIssuesStoreType.CYCLE);
+  const { issues, issuesFilter } = useIssues(EIssuesStoreType.CYCLE);
   const { getCycleById } = useCycle();
+
+  // biplane: config-gated background refetch (see /biplane-config.json) — same watch-mode
+  // behaviour as the project board, so agent-made changes appear without interaction.
+  useEffect(() => {
+    let timer: ReturnType<typeof setInterval> | undefined;
+    let alive = true;
+    const ws = routerWorkspaceSlug?.toString();
+    const proj = routerProjectId?.toString();
+    const cyc = routerCycleId?.toString();
+    if (ws && proj && cyc) {
+      biplaneConfig().then((cfg) => {
+        if (!alive || !cfg.boardAutoRefresh) return;
+        timer = setInterval(() => {
+          if (document.visibilityState === "visible") {
+            issues?.fetchIssuesWithExistingPagination(ws, proj, "mutation", cyc)?.catch(() => {});
+          }
+        }, cfg.boardRefreshMs);
+      });
+    }
+    return () => {
+      alive = false;
+      if (timer) clearInterval(timer);
+    };
+  }, [issues, routerWorkspaceSlug, routerProjectId, routerCycleId]);
   // state
   const [transferIssuesModal, setTransferIssuesModal] = useState(false);
   // derived values
