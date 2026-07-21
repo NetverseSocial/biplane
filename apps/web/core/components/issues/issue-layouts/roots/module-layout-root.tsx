@@ -6,7 +6,7 @@
 
 import React, { useEffect } from "react";
 // biplane
-import { biplaneConfig } from "@/biplane-config";
+import { biplaneConfig, ledgerSignal } from "@/biplane-config";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
@@ -62,10 +62,12 @@ export const ModuleLayoutRoot = observer(function ModuleLayoutRoot() {
     const proj = routerProjectId?.toString();
     const mod = routerModuleId?.toString();
     if (ws && proj && mod) {
+      const changed = ledgerSignal();
       biplaneConfig().then((cfg) => {
         if (!alive || !cfg.boardAutoRefresh) return;
-        timer = setInterval(() => {
-          if (document.visibilityState === "visible") {
+        timer = setInterval(async () => {
+          if (document.visibilityState !== "visible") return;
+          if (await changed()) {
             issues?.fetchIssuesWithExistingPagination(ws, proj, "mutation", mod)?.catch(() => {});
           }
         }, cfg.boardRefreshMs);

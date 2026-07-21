@@ -108,7 +108,10 @@ export class ProjectIssues extends BaseIssuesStore implements IProjectIssues {
       // set loader and clear store
       runInAction(() => {
         this.setLoader(loadType);
-        this.clear(!isExistingPaginationOptions); // clear while fetching from server.
+        // biplane: a silent background refetch ("mutation") must NOT blank the board — the
+        // empty-state boxes flash for the round-trip otherwise. onfetchIssues swaps the
+        // store atomically when the response lands, so skipping the pre-clear is safe.
+        if (loadType !== "mutation") this.clear(!isExistingPaginationOptions); // clear while fetching from server.
       });
 
       // get params from pagination options

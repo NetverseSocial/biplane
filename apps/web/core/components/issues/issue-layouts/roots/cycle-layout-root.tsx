@@ -6,7 +6,7 @@
 
 import React, { useEffect, useState } from "react";
 // biplane
-import { biplaneConfig } from "@/biplane-config";
+import { biplaneConfig, ledgerSignal } from "@/biplane-config";
 import { isEmpty } from "lodash-es";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
@@ -70,10 +70,12 @@ export const CycleLayoutRoot = observer(function CycleLayoutRoot() {
     const proj = routerProjectId?.toString();
     const cyc = routerCycleId?.toString();
     if (ws && proj && cyc) {
+      const changed = ledgerSignal();
       biplaneConfig().then((cfg) => {
         if (!alive || !cfg.boardAutoRefresh) return;
-        timer = setInterval(() => {
-          if (document.visibilityState === "visible") {
+        timer = setInterval(async () => {
+          if (document.visibilityState !== "visible") return;
+          if (await changed()) {
             issues?.fetchIssuesWithExistingPagination(ws, proj, "mutation", cyc)?.catch(() => {});
           }
         }, cfg.boardRefreshMs);

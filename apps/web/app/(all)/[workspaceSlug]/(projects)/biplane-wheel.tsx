@@ -4,7 +4,7 @@
 // browser, fed by Plane's OWN internal API over the logged-in session (no token, no extra service,
 // no iframe). Theme comes straight from the host — no ?theme round-trip.
 import { useEffect, useState } from "react";
-import { biplaneConfig } from "@/biplane-config";
+import { biplaneConfig, ledgerSignal } from "@/biplane-config";
 import {
   buildWheelModel,
   renderWheelSVG,
@@ -101,8 +101,12 @@ export function BiplaneWheel({ theme }: { theme: "light" | "dark" }) {
     };
     tick();
     let id: ReturnType<typeof setInterval> | undefined;
+    const changed = ledgerSignal(); // only redraw when the ledger says something happened
     biplaneConfig().then((cfg) => {
-      if (alive) id = setInterval(tick, cfg.wheelRefreshMs); // interval from /biplane-config.json
+      if (alive)
+        id = setInterval(async () => {
+          if (await changed()) tick();
+        }, cfg.wheelRefreshMs); // interval from /biplane-config.json
     });
     return () => {
       alive = false;

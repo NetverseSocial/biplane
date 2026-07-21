@@ -9,7 +9,7 @@ import { useEffect } from "react";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
 // biplane
-import { biplaneConfig } from "@/biplane-config";
+import { biplaneConfig, ledgerSignal } from "@/biplane-config";
 // plane constants
 import { ISSUE_DISPLAY_FILTERS_BY_PAGE, PROJECT_VIEW_TRACKER_ELEMENTS } from "@plane/constants";
 import { EIssueLayoutTypes, EIssuesStoreType } from "@plane/types";
@@ -73,10 +73,12 @@ export const ProjectLayoutRoot = observer(function ProjectLayoutRoot() {
     let timer: ReturnType<typeof setInterval> | undefined;
     let alive = true;
     if (workspaceSlug && projectId) {
+      const changed = ledgerSignal();
       biplaneConfig().then((cfg) => {
         if (!alive || !cfg.boardAutoRefresh) return;
-        timer = setInterval(() => {
-          if (document.visibilityState === "visible") {
+        timer = setInterval(async () => {
+          if (document.visibilityState !== "visible") return;
+          if (await changed()) {
             issues?.fetchIssuesWithExistingPagination(workspaceSlug, projectId, "mutation")?.catch(() => {});
           }
         }, cfg.boardRefreshMs);
