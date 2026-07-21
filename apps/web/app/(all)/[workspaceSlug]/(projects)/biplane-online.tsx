@@ -33,12 +33,12 @@ export function BiplaneOnline() {
 
   return (
     <div
-      title={`biplane · ${label}`}
+      title={`Biplane · ${label}`}
       className="flex flex-shrink-0 items-center gap-1.5 rounded-sm bg-layer-2 px-2.5 py-1.5"
-      aria-label={`biplane is ${label}`}
+      aria-label={`Biplane is ${label}`}
     >
       <BiplaneLogo size={16} />
-      <span className="hidden text-11 font-medium md:block">biplane</span>
+      <span className="hidden text-11 font-medium md:block">Biplane</span>
       <span
         style={{
           display: "inline-block",
