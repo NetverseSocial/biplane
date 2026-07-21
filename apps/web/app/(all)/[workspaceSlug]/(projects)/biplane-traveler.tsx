@@ -5,7 +5,7 @@
 // injects the read bearer server-side — no token ever reaches this code). Theme comes straight
 // from the host — no ?theme round-trip.
 import { useEffect, useState } from "react";
-import { biplaneConfig } from "@/biplane-config";
+import { biplaneConfig, ledgerSignal } from "@/biplane-config";
 import {
   foldTimelines,
   type AuditEvent,
@@ -82,8 +82,12 @@ export function BiplaneTraveler({ theme }: { theme: "light" | "dark" }) {
     };
     tick();
     let id: ReturnType<typeof setInterval> | undefined;
+    const changed = ledgerSignal(); // only re-pull + re-fold when the ledger moved
     biplaneConfig().then((cfg) => {
-      if (alive) id = setInterval(tick, cfg.travelerRefreshMs); // interval from /biplane-config.json
+      if (alive)
+        id = setInterval(async () => {
+          if (await changed()) tick();
+        }, cfg.travelerRefreshMs); // interval from /biplane-config.json
     });
     return () => {
       alive = false;
