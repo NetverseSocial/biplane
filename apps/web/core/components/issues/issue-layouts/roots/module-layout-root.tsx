@@ -4,7 +4,9 @@
  * See the LICENSE file for details.
  */
 
-import React from "react";
+import React, { useEffect } from "react";
+// biplane
+import { biplaneConfig } from "@/biplane-config";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
@@ -49,7 +51,32 @@ export const ModuleLayoutRoot = observer(function ModuleLayoutRoot() {
   const projectId = routerProjectId ? routerProjectId.toString() : undefined;
   const moduleId = routerModuleId ? routerModuleId.toString() : undefined;
   // hooks
-  const { issuesFilter } = useIssues(EIssuesStoreType.MODULE);
+  const { issues, issuesFilter } = useIssues(EIssuesStoreType.MODULE);
+
+  // biplane: config-gated background refetch (see /biplane-config.json) — same watch-mode
+  // behaviour as the project board, so agent-made changes appear without interaction.
+  useEffect(() => {
+    let timer: ReturnType<typeof setInterval> | undefined;
+    let alive = true;
+    const ws = routerWorkspaceSlug?.toString();
+    const proj = routerProjectId?.toString();
+    const mod = routerModuleId?.toString();
+    if (ws && proj && mod) {
+      biplaneConfig().then((cfg) => {
+        if (!alive || !cfg.boardAutoRefresh) return;
+        timer = setInterval(() => {
+          if (document.visibilityState === "visible") {
+            issues?.fetchIssuesWithExistingPagination(ws, proj, "mutation", mod)?.catch(() => {});
+          }
+        }, cfg.boardRefreshMs);
+      });
+    }
+    return () => {
+      alive = false;
+      if (timer) clearInterval(timer);
+    };
+  }, [issues, routerWorkspaceSlug, routerProjectId, routerModuleId]);
+
   // derived values
   const workItemFilters = moduleId ? issuesFilter?.getIssueFilters(moduleId) : undefined;
   const activeLayout = workItemFilters?.displayFilters?.layout || undefined;

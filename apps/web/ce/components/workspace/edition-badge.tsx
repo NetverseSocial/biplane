@@ -13,12 +13,15 @@ import { Tooltip } from "@plane/propel/tooltip";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 import packageJson from "package.json";
 // local components
-import { PaidPlanUpgradeModal } from "../license";
 import { Button } from "@plane/propel/button";
+// biplane: the edition badge opens the biplane about modal (fork identity + Plane credit)
+// instead of the upstream paid-plan upsell.
+import { BiplaneAboutModal } from "@/app/(all)/[workspaceSlug]/(projects)/biplane-about";
+import { BiplaneLogo } from "@/app/(all)/[workspaceSlug]/(projects)/biplane-logo";
 
 export const WorkspaceEditionBadge = observer(function WorkspaceEditionBadge() {
   // states
-  const [isPaidPlanPurchaseModalOpen, setIsPaidPlanPurchaseModalOpen] = useState(false);
+  const [isAboutOpen, setIsAboutOpen] = useState(false);
   // translation
   const { t } = useTranslation();
   // platform
@@ -26,19 +29,19 @@ export const WorkspaceEditionBadge = observer(function WorkspaceEditionBadge() {
 
   return (
     <>
-      <PaidPlanUpgradeModal
-        isOpen={isPaidPlanPurchaseModalOpen}
-        handleClose={() => setIsPaidPlanPurchaseModalOpen(false)}
-      />
-      <Tooltip tooltipContent={`Version: v${packageJson.version}`} isMobile={isMobile}>
+      <BiplaneAboutModal isOpen={isAboutOpen} onClose={() => setIsAboutOpen(false)} />
+      <Tooltip tooltipContent={`biplane · built on Plane v${packageJson.version}`} isMobile={isMobile}>
         <Button
           variant="tertiary"
           size="lg"
-          onClick={() => setIsPaidPlanPurchaseModalOpen(true)}
+          onClick={() => setIsAboutOpen(true)}
           aria-haspopup="dialog"
           aria-label={t("aria_labels.projects_sidebar.edition_badge")}
         >
-          Community
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <BiplaneLogo size={15} />
+            Community
+          </span>
         </Button>
       </Tooltip>
     </>

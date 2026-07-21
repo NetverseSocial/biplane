@@ -20,6 +20,7 @@ import useSWR from "swr";
 import { useWorkspaceNotifications } from "@/hooks/store/notifications";
 // local imports
 import { StarUsOnGitHubLink } from "@/app/(all)/[workspaceSlug]/(projects)/star-us-link";
+import { BiplaneOnline } from "@/app/(all)/[workspaceSlug]/(projects)/biplane-online";
 
 export const TopNavigationRoot = observer(function TopNavigationRoot() {
   // router
@@ -79,6 +80,7 @@ export const TopNavigationRoot = observer(function TopNavigationRoot() {
         </Tooltip>
         <HelpMenuRoot />
         <StarUsOnGitHubLink />
+        <BiplaneOnline />
         <div className="flex size-8 items-center justify-center rounded-md hover:bg-layer-1-hover">
           <UserMenuRoot />
         </div>
