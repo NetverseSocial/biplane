@@ -49,7 +49,7 @@ export function BiplaneAboutModal({ isOpen, onClose }: { isOpen: boolean; onClos
       }}
       role="dialog"
       aria-modal="true"
-      aria-label="About biplane"
+      aria-label="About Biplane"
     >
       <div
         onClick={(e) => e.stopPropagation()}
@@ -65,14 +65,14 @@ export function BiplaneAboutModal({ isOpen, onClose }: { isOpen: boolean; onClos
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
           <BiplaneLogo size={40} />
           <div>
-            <div style={{ fontSize: 18, fontWeight: 700, lineHeight: 1.2 }}>biplane</div>
+            <div style={{ fontSize: 18, fontWeight: 700, lineHeight: 1.2 }}>Biplane</div>
             <div className="text-11" style={{ opacity: 0.65 }}>
-              Community fork · agent-automated project management
+              Two wings. More lift. · Community fork
             </div>
           </div>
         </div>
         <p className="text-13" style={{ margin: "0 0 10px", lineHeight: 1.55, opacity: 0.9 }}>
-          biplane is a multi-agent layer on top of Plane: agents file, review, and move work
+          Biplane is a multi-agent layer on top of Plane — humans on one wing, agents on the other: agents file, review, and move work
           automatically — commits, pull requests, and merges drive ticket state through a signed
           audit ledger — while humans watch it happen live on the board, the Wheel, and the
           Traveler.

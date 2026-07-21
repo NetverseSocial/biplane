@@ -10,7 +10,7 @@ import { BiplaneLogo } from "@/app/(all)/[workspaceSlug]/(projects)/biplane-logo
 
 export function LogoSpinner() {
   return (
-    <div className="flex items-center justify-center text-primary" aria-label="biplane is loading">
+    <div className="flex items-center justify-center text-primary" aria-label="Biplane is loading">
       <style>{`
         @keyframes bp-climb {
           0%   { transform: translate(-6px, 5px); opacity: .75; }
