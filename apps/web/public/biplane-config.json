@@ -1,0 +1,6 @@
+{
+  "boardAutoRefresh": true,
+  "boardRefreshMs": 5000,
+  "wheelRefreshMs": 5000,
+  "travelerRefreshMs": 5000
+}

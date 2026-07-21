@@ -5,6 +5,7 @@
 // injects the read bearer server-side — no token ever reaches this code). Theme comes straight
 // from the host — no ?theme round-trip.
 import { useEffect, useState } from "react";
+import { biplaneConfig } from "@/biplane-config";
 import {
   foldTimelines,
   type AuditEvent,
@@ -15,7 +16,6 @@ import {
 const LEDGER = "/biplane-ledger";
 const PAGE = 1000; // ledger caps limit at 1000
 const MAX_PAGES = 20; // safety valve: 20k events is far beyond a dev ledger
-const REFRESH_MS = 10000;
 
 // Pull the whole ledger, paginating on seq. The ledger's GET /events returns
 // { events: AuditEvent[], last_seq } ordered by seq ascending.
@@ -81,10 +81,13 @@ export function BiplaneTraveler({ theme }: { theme: "light" | "dark" }) {
       }
     };
     tick();
-    const id = setInterval(tick, REFRESH_MS);
+    let id: ReturnType<typeof setInterval> | undefined;
+    biplaneConfig().then((cfg) => {
+      if (alive) id = setInterval(tick, cfg.travelerRefreshMs); // interval from /biplane-config.json
+    });
     return () => {
       alive = false;
-      clearInterval(id);
+      if (id) clearInterval(id);
     };
   }, [groupBy]);
 

@@ -4,6 +4,7 @@
 // browser, fed by Plane's OWN internal API over the logged-in session (no token, no extra service,
 // no iframe). Theme comes straight from the host — no ?theme round-trip.
 import { useEffect, useState } from "react";
+import { biplaneConfig } from "@/biplane-config";
 import {
   buildWheelModel,
   renderWheelSVG,
@@ -12,8 +13,6 @@ import {
   type PlaneIssue,
   type WheelModel,
 } from "./biplane-wheel-geometry";
-
-const REFRESH_MS = 5000;
 
 // Fetch the project's issues + states from Plane's internal API (same-origin, cookie-authed — the
 // same surface the rest of the web app uses) and shape them for the pure wheel geometry. State
@@ -101,10 +100,13 @@ export function BiplaneWheel({ theme }: { theme: "light" | "dark" }) {
       }
     };
     tick();
-    const id = setInterval(tick, REFRESH_MS);
+    let id: ReturnType<typeof setInterval> | undefined;
+    biplaneConfig().then((cfg) => {
+      if (alive) id = setInterval(tick, cfg.wheelRefreshMs); // interval from /biplane-config.json
+    });
     return () => {
       alive = false;
-      clearInterval(id);
+      if (id) clearInterval(id);
     };
   }, [theme]);
 
