@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { BiplaneWheel } from "./biplane-wheel";
+import { BiplaneTraveler } from "./biplane-traveler";
 
 // biplane native nav — sidebar buttons that open a right-hand slide-in panel (like Plane's
-// Analyze pane) with the Wheel / Traveler in an iframe. Theme-aware: follows Plane's
-// light/dark by reading the live background luminance, and passes ?theme to the iframe.
-const WHEEL = "http://10.211.55.14:8791";
-const TRAVELER = "http://10.211.55.14:8793";
+// Analyze pane) with the Wheel / Traveler rendered NATIVELY (no iframe, no separate servers):
+// the panels fetch Plane's own API / the ledger proxy same-origin. Theme-aware: follows
+// Plane's light/dark and hands the theme straight to the panels.
 type View = "wheel" | "traveler";
 
 function usePlaneTheme(): "light" | "dark" {
@@ -85,7 +86,6 @@ export function BiplaneNav() {
   const line = dark ? "rgba(255,255,255,.14)" : "rgba(0,0,0,.12)";
   const hov = dark ? "rgba(255,255,255,.10)" : "rgba(0,0,0,.06)";
   const bg = dark ? "#0f1117" : "#ffffff";
-  const src = `${view === "wheel" ? WHEEL : TRAVELER}?theme=${theme}`;
 
   const navBtn = (v: View, label: string) => (
     <button
@@ -186,7 +186,9 @@ export function BiplaneNav() {
               {icoBtn("⤢", "Expand", () => setWide((w) => !w))}
               {icoBtn("✕", "Close", () => setOpen(false))}
             </div>
-            <iframe title="biplane" src={src} style={{ flex: 1, border: 0, width: "100%", background: bg }} />
+            <div style={{ flex: 1, minHeight: 0, overflow: "auto", background: bg }}>
+              {view === "wheel" ? <BiplaneWheel theme={theme} /> : <BiplaneTraveler theme={theme} />}
+            </div>
           </div>,
           document.body,
         )}
