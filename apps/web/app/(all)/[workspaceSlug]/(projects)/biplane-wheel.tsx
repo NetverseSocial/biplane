@@ -136,10 +136,10 @@ export function BiplaneWheel({ theme }: { theme: "light" | "dark" }) {
           ⚠ couldn't load Plane data: {err}
         </div>
       )}
-      {/* legends — colours match the board's states */}
+      {/* legends — colors match the board's states */}
       <div style={{ color: mut, fontSize: 12.5, marginBottom: 4 }}>
         slice = ticket · width = priority ·{" "}
-        {hasMovement ? "inner ring = state ~24h ago · middle ring = state now" : "ring colour = current state (same as board)"}{" "}
+        {hasMovement ? "inner ring = state ~24h ago · middle ring = state now" : "ring color = current state (same as board)"}{" "}
         · outer band = module
       </div>
       {model && model.states.length > 0 && (
