@@ -26,7 +26,7 @@ export interface ProjectState {
 
 // Board-column ordering: Plane groups columns (backlog → unstarted → started → done →
 // cancelled) and sorts by sequence within a group — mirror that exactly.
-const GROUP_RANK: Record<string, number> = { backlog: 0, unstarted: 1, started: 2, done: 3, cancelled: 4 };
+const GROUP_RANK: Record<string, number> = { backlog: 0, unstarted: 1, started: 2, completed: 3, done: 3, cancelled: 4 };
 
 async function loadIssues(
   ws: string,
