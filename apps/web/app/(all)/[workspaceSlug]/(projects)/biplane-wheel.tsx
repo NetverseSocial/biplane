@@ -33,16 +33,21 @@ async function loadIssues(
   project: string,
 ): Promise<{ issues: PlaneIssue[]; projectStates: ProjectState[] }> {
   const base = `/api/workspaces/${ws}/projects/${project}`;
-  const [iRes, sRes] = await Promise.all([
+  const [iRes, sRes, mRes] = await Promise.all([
     fetch(`${base}/issues/?per_page=100`, { credentials: "same-origin" }),
     fetch(`${base}/states/`, { credentials: "same-origin" }),
+    fetch(`${base}/modules/`, { credentials: "same-origin" }),
   ]);
   if (!iRes.ok) throw new Error(`issues ${iRes.status}`);
   if (!sRes.ok) throw new Error(`states ${sRes.status}`);
   const iJson = await iRes.json();
   const sJson = await sRes.json();
+  const mJson = mRes.ok ? await mRes.json() : [];
   const issues: any[] = Array.isArray(iJson) ? iJson : (iJson?.results ?? []);
   const states: any[] = Array.isArray(sJson) ? sJson : (sJson?.results ?? []);
+  const modules: any[] = Array.isArray(mJson) ? mJson : (mJson?.results ?? []);
+  // module lanes carry NAMES, not ids — the outer-band legend must read like the board does
+  const moduleName = new Map(modules.map((m) => [String(m.id), String(m.name ?? m.id)]));
   const stateById = new Map(states.map((s) => [String(s.id), s]));
   // ALL of the project's states, in board-column order — the legend shows every column
   // persistently (not just states that currently hold tickets), colors from the project.
@@ -66,7 +71,7 @@ async function loadIssues(
         state_detail: st ? { name: st.name, group: st.group, color: st.color } : undefined,
         created_at: i.created_at,
         updated_at: i.updated_at,
-        module_ids: i.module_ids ?? [],
+        module_ids: (i.module_ids ?? []).map((mid: unknown) => moduleName.get(String(mid)) ?? String(mid)),
         assignees: i.assignee_ids ?? i.assignees ?? [],
       } as PlaneIssue;
     }),
