@@ -1,165 +1,40 @@
-<br /><br />
-
 <p align="center">
-<a href="https://plane.so">
-  <img src="https://media.docs.plane.so/logo/plane_github_readme.png" alt="Plane Logo" width="400">
-</a>
-</p>
-<p align="center"><b>Modern project management for all teams</b></p>
-
-<p align="center">
-    <a href="https://plane.so/"><b>Website</b></a> •
-    <a href="https://forum.plane.so"><b>Forum</b></a> •
-    <a href="https://x.com/planepowers"><b>X</b></a> •
-    <a href="https://docs.plane.so/"><b>Documentation</b></a>
+  <img src="biplane-logo.svg" width="120" alt="Biplane logo — an ascending biplane" />
 </p>
 
-<p>
-    <a href="https://app.plane.so/#gh-light-mode-only" target="_blank">
-      <img
-        src="https://media.docs.plane.so/GitHub-readme/github-top.webp"
-        alt="Plane Screens"
-        width="100%"
-      />
-    </a>
-</p>
+<h1 align="center">Biplane</h1>
+<p align="center"><b>Two wings. More lift.</b></p>
+<p align="center">Agent-automated project management — humans on one wing, agents on the other.</p>
 
-Meet [Plane](https://plane.so/), an open-source project management tool to track issues, run ~sprints~ cycles, and manage product roadmaps without the chaos of managing the tool itself. 🧘‍♀️
+---
 
-> Plane is evolving every day. Your suggestions, ideas, and reported bugs help us immensely. Do not hesitate to join in the conversation on [Forum](https://forum.plane.so) or raise a GitHub issue. We read everything and respond to most.
+Biplane is a community fork of [Plane](https://plane.so) that adds a **multi-agent layer**: AI agents file, review, and move work automatically — commits, pull requests, and merges drive ticket state through a signed audit ledger — while humans watch it happen live on the board, the **Wheel** (a real-time radial view of every ticket), and the **Traveler** (each work item's full lifecycle, like a medical record).
 
-## 🚀 Installation
+## What Biplane adds
 
-Getting started with Plane is simple. Choose the setup that works best for you:
+| Piece | What it does |
+|---|---|
+| **Forgejo/Git bridge** | Webhooks from your git host move tickets automatically: first commit → *In Progress*, PR opened → *In Review*, merge → *Done*. Monotonic (never moves a ticket backwards), retry-safe, serialized per issue. |
+| **Audit Ledger** | Append-only, HMAC-verified record of every change — each timeline entry carries a signature-verified checkmark. |
+| **Workflow Policy** | Per-work-item-type routing rules for what agents may do. |
+| **Agent Write-Path** | The gated proxy agents use to write to the tracker — idempotent creates, fail-closed authorization. |
+| **Wheel & Traveler** | Native live views: the whole project as a turning wheel; each item's history as a vertical timeline. |
+| **Watch mode** | Boards and views refresh themselves only when something actually changed (change-signal gated — no polling flicker). |
 
-- **Plane Cloud**
-  Sign up for a free account on [Plane Cloud](https://app.plane.so)—it's the fastest way to get up and running without worrying about infrastructure.
+## Documentation
 
-- **Self-host Plane**
-  Prefer full control over your data and infrastructure? Install and run Plane on your own servers. Follow our detailed [deployment guides](https://developers.plane.so/self-hosting/overview) to get started.
+- **Getting started & architecture** — this README and [`docs/`](docs/) *(growing — ask in Discussions)*
+- **What's new** — see [Releases](../../releases)
+- **Forum** — see [Discussions](../../discussions)
+- Plane's originals: [Plane docs](https://docs.plane.so) · [Plane changelog](https://plane.so/changelog) · [Plane forum](https://forum.plane.so)
 
-| Installation methods | Docs link                                                                                                                                                                               |
-| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Docker               | [![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)](https://developers.plane.so/self-hosting/methods/docker-compose)         |
-| Kubernetes           | [![Kubernetes](https://img.shields.io/badge/kubernetes-%23326ce5.svg?style=for-the-badge&logo=kubernetes&logoColor=white)](https://developers.plane.so/self-hosting/methods/kubernetes) |
+## Relationship to Plane
 
-`Instance admins` can configure instance settings with [God mode](https://developers.plane.so/self-hosting/govern/instance-admin).
+Biplane is **built on, not competing with, [Plane](https://plane.so)** (Community Edition, AGPL-3.0). The web app in this repository is a modified Plane frontend and remains **AGPL-3.0** — this repo is the corresponding-source offer for our hosted instances. The agent-side services (bridge, ledger, policy, write-path) are separate programs that talk to Plane only over its public API and webhooks.
 
-## 🌟 Features
-
-- **Work Items**
-  Efficiently create and manage tasks with a robust rich text editor that supports file uploads. Enhance organization and tracking by adding sub-properties and referencing related issues.
-
-- **Cycles**
-  Maintain your team’s momentum with Cycles. Track progress effortlessly using burn-down charts and other insightful tools.
-
-- **Modules**
-  Simplify complex projects by dividing them into smaller, manageable modules.
-
-- **Views**
-  Customize your workflow by creating filters to display only the most relevant issues. Save and share these views with ease.
-
-- **Pages**
-  Capture and organize ideas using Plane Pages, complete with AI capabilities and a rich text editor. Format text, insert images, add hyperlinks, or convert your notes into actionable items.
-
-- **Analytics**
-  Access real-time insights across all your Plane data. Visualize trends, remove blockers, and keep your projects moving forward.
-
-## 🛠️ Local development
-
-See [CONTRIBUTING](./CONTRIBUTING.md)
-
-## ⚙️ Built with
-
-[![React Router](https://img.shields.io/badge/-React%20Router-CA4245?logo=react-router&style=for-the-badge&logoColor=white)](https://reactrouter.com/)
-[![Django](https://img.shields.io/badge/Django-092E20?style=for-the-badge&logo=django&logoColor=green)](https://www.djangoproject.com/)
-[![Node JS](https://img.shields.io/badge/node.js-339933?style=for-the-badge&logo=Node.js&logoColor=white)](https://nodejs.org/en)
-
-## 📸 Screenshots
-
-  <p>
-    <a href="https://plane.so" target="_blank">
-      <img
-        src="https://media.docs.plane.so/GitHub-readme/github-work-items.webp"
-        alt="Plane Views"
-        width="100%"
-      />
-    </a>
-  </p>
-  <p>
-    <a href="https://plane.so" target="_blank">
-      <img
-        src="https://media.docs.plane.so/GitHub-readme/github-cycles.webp"
-        width="100%"
-      />
-    </a>
-  </p>
-  <p>
-    <a href="https://plane.so" target="_blank">
-      <img
-        src="https://media.docs.plane.so/GitHub-readme/github-modules.webp"
-        alt="Plane Cycles and Modules"
-        width="100%"
-      />
-    </a>
-  </p>
-  <p>
-    <a href="https://plane.so" target="_blank">
-      <img
-        src="https://media.docs.plane.so/GitHub-readme/github-views.webp"
-        alt="Plane Analytics"
-        width="100%"
-      />
-    </a>
-  </p>
-   <p>
-    <a href="https://plane.so" target="_blank">
-      <img
-        src="https://media.docs.plane.so/GitHub-readme/github-analytics.webp"
-        alt="Plane Pages"
-        width="100%"
-      />
-    </a>
-  </p>
-</p>
-
-## 📝 Documentation
-
-Explore Plane's [product documentation](https://docs.plane.so/) and [developer documentation](https://developers.plane.so/) to learn about features, setup, and usage.
-
-## ❤️ Community
-
-Join the Plane community on [GitHub Discussions](https://github.com/orgs/makeplane/discussions) and our [Forum](https://forum.plane.so). We follow a [Code of conduct](https://github.com/makeplane/plane/blob/master/CODE_OF_CONDUCT.md) in all our community channels.
-
-Feel free to ask questions, report bugs, participate in discussions, share ideas, request features, or showcase your projects. We’d love to hear from you!
-
-## 🛡️ Security
-
-If you discover a security vulnerability in Plane, please report it responsibly instead of opening a public issue. We take all legitimate reports seriously and will investigate them promptly. See [Security policy](https://github.com/makeplane/plane/blob/master/SECURITY.md) for more info.
-
-To disclose any security issues, please email us at security@plane.so.
-
-## 🤝 Contributing
-
-There are many ways you can contribute to Plane:
-
-- Report [bugs](https://github.com/makeplane/plane/issues/new?assignees=srinivaspendem%2Cpushya22&labels=%F0%9F%90%9Bbug&projects=&template=--bug-report.yaml&title=%5Bbug%5D%3A+) or submit [feature requests](https://github.com/makeplane/plane/issues/new?assignees=srinivaspendem%2Cpushya22&labels=%E2%9C%A8feature&projects=&template=--feature-request.yaml&title=%5Bfeature%5D%3A+).
-- Review the [documentation](https://docs.plane.so/) and submit [pull requests](https://github.com/makeplane/docs) to improve it—whether it's fixing typos or adding new content.
-- Talk or write about Plane or any other ecosystem integration and [let us know](https://forum.plane.so)!
-- Show your support by upvoting [popular feature requests](https://github.com/makeplane/plane/issues).
-
-Please read [CONTRIBUTING.md](https://github.com/makeplane/plane/blob/master/CONTRIBUTING.md) for details on the process for submitting pull requests to us.
-
-### Repo activity
-
-![Plane Repo Activity](https://repobeats.axiom.co/api/embed/2523c6ed2f77c082b7908c33e2ab208981d76c39.svg "Repobeats analytics image")
-
-### We couldn't have done this without you.
-
-<a href="https://github.com/makeplane/plane/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=makeplane/plane" />
-</a>
+Thank you, [Plane team](https://github.com/makeplane/plane). 🙏
 
 ## License
 
-This project is licensed under the [GNU Affero General Public License v3.0](https://github.com/makeplane/plane/blob/master/LICENSE.txt).
+- `apps/web` and everything derived from Plane: **AGPL-3.0** (see [LICENSE](LICENSE))
+- Biplane's separate agent services live in their own repositories with their own licenses.
