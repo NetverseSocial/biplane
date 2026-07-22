@@ -17,7 +17,16 @@ import {
 // Fetch the project's issues + states from Plane's internal API (same-origin, cookie-authed — the
 // same surface the rest of the web app uses) and shape them for the pure wheel geometry. State
 // detail (group/colour/name) is joined from /states/ since the issue list carries only a state id.
-async function loadIssues(ws: string, project: string): Promise<PlaneIssue[]> {
+export interface ProjectState {
+  name: string;
+  color: string;
+  sequence: number;
+}
+
+async function loadIssues(
+  ws: string,
+  project: string,
+): Promise<{ issues: PlaneIssue[]; projectStates: ProjectState[] }> {
   const base = `/api/workspaces/${ws}/projects/${project}`;
   const [iRes, sRes] = await Promise.all([
     fetch(`${base}/issues/?per_page=100`, { credentials: "same-origin" }),
@@ -30,21 +39,29 @@ async function loadIssues(ws: string, project: string): Promise<PlaneIssue[]> {
   const issues: any[] = Array.isArray(iJson) ? iJson : (iJson?.results ?? []);
   const states: any[] = Array.isArray(sJson) ? sJson : (sJson?.results ?? []);
   const stateById = new Map(states.map((s) => [String(s.id), s]));
-  return issues.map((i) => {
-    const st = stateById.get(String(i.state ?? i.state_id ?? ""));
-    return {
-      id: String(i.id),
-      sequence_id: Number(i.sequence_id),
-      name: i.name ?? "",
-      priority: i.priority ?? "none",
-      state: st?.id,
-      state_detail: st ? { name: st.name, group: st.group, color: st.color } : undefined,
-      created_at: i.created_at,
-      updated_at: i.updated_at,
-      module_ids: i.module_ids ?? [],
-      assignees: i.assignee_ids ?? i.assignees ?? [],
-    } as PlaneIssue;
-  });
+  // ALL of the project's states, in board-column order — the legend shows every column
+  // persistently (not just states that currently hold tickets), colors from the project.
+  const projectStates: ProjectState[] = states
+    .map((s) => ({ name: String(s.name ?? ""), color: String(s.color ?? "#888"), sequence: Number(s.sequence ?? 0) }))
+    .sort((a, b) => a.sequence - b.sequence);
+  return {
+    issues: issues.map((i) => {
+      const st = stateById.get(String(i.state ?? i.state_id ?? ""));
+      return {
+        id: String(i.id),
+        sequence_id: Number(i.sequence_id),
+        name: i.name ?? "",
+        priority: i.priority ?? "none",
+        state: st?.id,
+        state_detail: st ? { name: st.name, group: st.group, color: st.color } : undefined,
+        created_at: i.created_at,
+        updated_at: i.updated_at,
+        module_ids: i.module_ids ?? [],
+        assignees: i.assignee_ids ?? i.assignees ?? [],
+      } as PlaneIssue;
+    }),
+    projectStates,
+  };
 }
 
 function Swatch({ color }: { color: string }) {
@@ -78,6 +95,7 @@ export function BiplaneWheel({ theme }: { theme: "light" | "dark" }) {
   const [svg, setSvg] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [noProject, setNoProject] = useState(false);
+  const [projectStates, setProjectStates] = useState<ProjectState[]>([]);
 
   useEffect(() => {
     let alive = true;
@@ -88,9 +106,10 @@ export function BiplaneWheel({ theme }: { theme: "light" | "dark" }) {
         return;
       }
       try {
-        const issues = await loadIssues(ctx.ws, ctx.project);
+        const { issues, projectStates: ps } = await loadIssues(ctx.ws, ctx.project);
         if (!alive) return;
         setNoProject(false);
+        setProjectStates(ps);
         const m = buildWheelModel(issues);
         setModel(m);
         setSvg(renderWheelSVG(m, theme));
@@ -142,11 +161,11 @@ export function BiplaneWheel({ theme }: { theme: "light" | "dark" }) {
         {hasMovement ? "inner ring = state ~24h ago · middle ring = state now" : "ring color = current state (same as board)"}{" "}
         · outer band = module
       </div>
-      {model && model.states.length > 0 && (
+      {projectStates.length > 0 && (
         <div style={{ color: mut, fontSize: 12, marginBottom: 4 }}>
-          states (same as board):{" "}
-          {model.states.map((s) => (
-            <span key={s.name} style={{ marginRight: 12 }}>
+          states (all board columns):{" "}
+          {projectStates.map((s) => (
+            <span key={s.name} style={{ marginRight: 12, whiteSpace: "nowrap" }}>
               <Swatch color={s.color} />
               {s.name}
             </span>
