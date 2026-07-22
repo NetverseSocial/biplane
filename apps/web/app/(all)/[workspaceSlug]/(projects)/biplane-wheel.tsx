@@ -21,7 +21,12 @@ export interface ProjectState {
   name: string;
   color: string;
   sequence: number;
+  group: string;
 }
+
+// Board-column ordering: Plane groups columns (backlog → unstarted → started → done →
+// cancelled) and sorts by sequence within a group — mirror that exactly.
+const GROUP_RANK: Record<string, number> = { backlog: 0, unstarted: 1, started: 2, done: 3, cancelled: 4 };
 
 async function loadIssues(
   ws: string,
@@ -42,8 +47,13 @@ async function loadIssues(
   // ALL of the project's states, in board-column order — the legend shows every column
   // persistently (not just states that currently hold tickets), colors from the project.
   const projectStates: ProjectState[] = states
-    .map((s) => ({ name: String(s.name ?? ""), color: String(s.color ?? "#888"), sequence: Number(s.sequence ?? 0) }))
-    .sort((a, b) => a.sequence - b.sequence);
+    .map((s) => ({
+      name: String(s.name ?? ""),
+      color: String(s.color ?? "#888"),
+      sequence: Number(s.sequence ?? 0),
+      group: String(s.group ?? ""),
+    }))
+    .sort((a, b) => (GROUP_RANK[a.group] ?? 9) - (GROUP_RANK[b.group] ?? 9) || a.sequence - b.sequence);
   return {
     issues: issues.map((i) => {
       const st = stateById.get(String(i.state ?? i.state_id ?? ""));
