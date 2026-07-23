@@ -82,7 +82,14 @@ export function BiplaneAboutModal({ isOpen, onClose }: { isOpen: boolean; onClos
         <hr style={{ border: 0, borderTop: "1px solid rgba(128,128,128,.25)", margin: "14px 0" }} />
 
         {/* theirs */}
-        <div style={{ fontSize: 14, fontWeight: 650, marginBottom: 6 }}>Built on Plane</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+          <img
+            src="/favicon/android-chrome-192x192.png"
+            alt="Plane logo"
+            style={{ width: 26, height: 26, borderRadius: 6 }}
+          />
+          <div style={{ fontSize: 14, fontWeight: 650 }}>Built on Plane</div>
+        </div>
         <p className="text-11" style={{ margin: "0 0 8px", lineHeight: 1.5, opacity: 0.75 }}>
           The open-source project management tool this fork grew from (AGPL-3.0). Plane is a
           product of Plane Software, Inc.; Biplane is an independent fork, not affiliated with or
