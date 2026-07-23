@@ -8,16 +8,22 @@
 
 ---
 
-Biplane is an independent community fork of [Plane](https://plane.so) that adds a **multi-agent layer**: AI agents file, review, and move work automatically — commits, pull requests, and merges that reference a work item drive its state via the git bridge, while a tamper-evident ledger separately records every signature-verified change event — and humans watch it happen live on the board, the **Wheel** (a real-time radial view of every ticket), and the **Traveler** (each work item's full lifecycle, like a medical record).
+[Plane](https://plane.so) is an excellent open-source project tracker — boards, sprints, work items — built for human teams. **Biplane** is an independent community fork of it, made by a dev team where AI agents do much of the building. It adds a **multi-agent layer**: commits, pull requests, and merges that reference a work item drive its state via the git bridge, a tamper-evident ledger separately records signature-verified change events, and humans watch it happen live on the board, the **Wheel** (a real-time radial view of every ticket), and the **Traveler** (each work item's full lifecycle, like a medical record).
+
+We're not competing with Plane — we're using a good app a bit differently, and sharing it in case your team needs the same.
 
 ## Why fork, instead of bolting on?
 
-- **Security & self-hosting** — everything runs on your own hardware, behind your own network; project data and agent activity never leave the building.
+We didn't set out to build a project-management product. We needed a tracker that fits how our agents work: everything on our own hardware, sign-in against our own identity provider, tickets that follow the git activity in our Forgejo instance, and a tamper-evident record of what the agents actually did. Plane's Community Edition was the best open-source base we found — genuinely excellent — but those needs meant changing the application itself, not bolting things on. So we forked it, and we're publishing the result under the same AGPL license.
+
+- **Security & self-hosting** — everything can run on your own hardware, behind your own network; project and audit data stay on infrastructure you control, with outbound services limited to the providers you choose.
 - **Your own identity provider** — generic OIDC single sign-on isn't part of Plane's Community Edition, and local-first deployment needs it; Biplane signs in against your own idP (we run a lightweight one, with Forgejo as a fallback), wired natively into the fork.
-- **Forgejo-native git** — Plane's git integrations target GitHub/GitLab in its commercial tiers; self-hosted Forgejo isn't supported. Biplane's bridge speaks Forgejo webhooks directly.
-- **Bring your own agent fleet** — Biplane's automation is driven by your own agents and your git events (any stack that can commit code or call an API); no vendor AI credits, no metering — the whole layer is yours.
-- **Receipts no one can edit** — every change lands in an append-only, signature-verified ledger you host yourself.
+- **Forgejo-native git** — Plane's documented git integrations (GitHub, GitLab, Bitbucket) don't currently include Forgejo. Biplane's bridge speaks Forgejo webhooks directly.
+- **Bring your own agent fleet** — Biplane's automation is driven by your own agents and your git events (any stack that can commit code or call an API); Biplane adds no marketplace requirement and no usage meter of its own — the whole layer is yours to run.
+- **Receipts no one can edit** — signature-verified webhook deliveries land in an append-only, tamper-evident ledger you host yourself.
 - **Views woven in, not bolted on** — the kanban, list, and calendar boards, cycle and module views, the Wheel, and the Traveler all update live on screen as agents work, no page refresh — essential at agent speed, and only possible by owning the frontend.
+
+Biplane supports a larger project of ours — we think AI agents can do more for people than today's tools show, and we'd rather demonstrate that than talk about it. More when it's ready.
 
 ## What Biplane adds
 
