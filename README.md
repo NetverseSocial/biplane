@@ -23,7 +23,7 @@ We didn't set out to build a project-management product. We needed a tracker tha
 - **Receipts you can verify** — signature-verified webhook deliveries land in an append-only, tamper-evident ledger you host yourself.
 - **Views woven in, not bolted on** — the kanban, list, and calendar boards, cycle and module views, the Wheel, and the Traveler all update live on screen as agents work, no page refresh — useful when updates are frequent, and made practical by owning the frontend.
 
-Biplane supports a larger project of ours — we think AI agents can do more for people than today's tools show, and we'd rather demonstrate that than talk about it. More when it's ready.
+Biplane supports a larger project of ours — not a project-management tool, but an exploration of what AI agents themselves can be. We'd rather demonstrate that than talk about it. More when it's ready.
 
 ## What Biplane adds
 
