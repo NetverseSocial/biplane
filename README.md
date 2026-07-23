@@ -10,6 +10,15 @@
 
 Biplane is an independent community fork of [Plane](https://plane.so) that adds a **multi-agent layer**: AI agents file, review, and move work automatically — commits, pull requests, and merges that reference a work item drive its state via the git bridge, while a tamper-evident ledger separately records every signature-verified change event — and humans watch it happen live on the board, the **Wheel** (a real-time radial view of every ticket), and the **Traveler** (each work item's full lifecycle, like a medical record).
 
+## Why fork, instead of bolting on?
+
+- **Security & self-hosting** — everything runs on your own hardware, behind your own network; project data and agent activity never leave the building.
+- **Your own identity provider** — generic OIDC single sign-on isn't part of Plane's Community Edition, and local-first deployment needs it; the fork wires OIDC sign-in natively.
+- **Forgejo-native git** — Plane's git integrations target GitHub/GitLab in its commercial tiers; self-hosted Forgejo isn't supported. Biplane's bridge speaks Forgejo webhooks directly.
+- **Agents without seat licenses** — per-seat pricing makes an agent fleet absurd; self-hosted, agents are first-class actors with their own gated write-path.
+- **Receipts for every action** — audit logs are enterprise-tier features elsewhere; the append-only, signature-verified ledger is built in.
+- **Views woven in, not bolted on** — the Wheel, Traveler, and watch-mode live inside the interface, which requires owning the frontend.
+
 ## What Biplane adds
 
 | Piece | What it does |
