@@ -13,11 +13,11 @@ Biplane is an independent community fork of [Plane](https://plane.so) that adds 
 ## Why fork, instead of bolting on?
 
 - **Security & self-hosting** — everything runs on your own hardware, behind your own network; project data and agent activity never leave the building.
-- **Your own identity provider** — generic OIDC single sign-on isn't part of Plane's Community Edition, and local-first deployment needs it; the fork wires OIDC sign-in natively.
+- **Your own identity provider** — generic OIDC single sign-on isn't part of Plane's Community Edition, and local-first deployment needs it; Biplane signs in against your own idP (we run a lightweight one, with Forgejo as a fallback), wired natively into the fork.
 - **Forgejo-native git** — Plane's git integrations target GitHub/GitLab in its commercial tiers; self-hosted Forgejo isn't supported. Biplane's bridge speaks Forgejo webhooks directly.
 - **Agents without seat licenses** — per-seat pricing makes an agent fleet absurd; self-hosted, agents are first-class actors with their own gated write-path.
 - **Receipts for every action** — audit logs are enterprise-tier features elsewhere; the append-only, signature-verified ledger is built in.
-- **Views woven in, not bolted on** — the Wheel, Traveler, and watch-mode live inside the interface, which requires owning the frontend.
+- **Views woven in, not bolted on** — the kanban, list, and calendar boards, cycle and module views, the Wheel, and the Traveler all update live on screen as agents work, no page refresh — essential at agent speed, and only possible by owning the frontend.
 
 ## What Biplane adds
 
