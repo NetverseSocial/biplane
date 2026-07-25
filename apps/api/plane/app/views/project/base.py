@@ -255,7 +255,7 @@ class ProjectViewSet(BaseViewSet):
 
         serializer = ProjectSerializer(data={**request.data}, context={"workspace_id": workspace.id})
         if serializer.is_valid():
-            serializer.save()
+            serializer.save(timezone=request.data.get("timezone") or request.user.user_timezone)
 
             # Add the user as Administrator to the project
             _ = ProjectMember.objects.create(

@@ -304,6 +304,14 @@ class Adapter:
 
             # Initialize user
             user = User(email=email, username=uuid.uuid4().hex)
+            # biplane: capture the signing-up browser's IANA timezone (validated), fallback stays model default
+            try:
+                import zoneinfo
+                _tz = (getattr(self, "request", None) and self.request.POST.get("user_timezone", "")) or ""
+                if _tz and _tz in zoneinfo.available_timezones():
+                    user.user_timezone = _tz
+            except Exception:
+                pass
 
             # Check if password is autoset
             if self.user_data.get("user").get("is_password_autoset"):

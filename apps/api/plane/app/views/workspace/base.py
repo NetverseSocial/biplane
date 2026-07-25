@@ -121,7 +121,7 @@ class WorkSpaceViewSet(BaseViewSet):
                 )
 
             if serializer.is_valid(raise_exception=True):
-                serializer.save(owner=request.user)
+                serializer.save(owner=request.user, timezone=request.data.get("timezone") or request.user.user_timezone)
                 # Create Workspace member
                 _ = WorkspaceMember.objects.create(
                     workspace_id=serializer.data["id"],
