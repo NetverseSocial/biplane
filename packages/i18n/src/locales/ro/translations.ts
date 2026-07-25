@@ -89,7 +89,7 @@ export default {
       already_have_an_account: "Ai deja un cont?",
       login: "Autentificare",
       create_account: "Creează un cont",
-      new_to_plane: "Ești nou în Plane?",
+      new_to_plane: "Ești nou în Biplane?",
       back_to_sign_in: "Înapoi la autentificare",
       resend_in: "Retrimite în {seconds} secunde",
       sign_in_with_unique_code: "Autentificare cu cod unic",
@@ -412,7 +412,7 @@ export default {
   full_changelog: "Jurnal complet al modificărilor",
   support: "Suport",
   forum: "Forum",
-  powered_by_plane_pages: "Oferit de Plane Documentație",
+  powered_by_plane_pages: "Oferit de Biplane Documentație",
   please_select_at_least_one_invitation: "Te rugăm să selectezi cel puțin o invitație.",
   please_select_at_least_one_invitation_description:
     "Te rugăm să selectezi cel puțin o invitație pentru a te alătura spațiului de lucru.",
@@ -575,7 +575,7 @@ export default {
       not_right_now: "Nu acum",
       create_project: {
         title: "Creează un proiect",
-        description: "Majoritatea lucrurilor încep cu un proiect în Plane.",
+        description: "Majoritatea lucrurilor încep cu un proiect în Biplane.",
         cta: "Începe acum",
       },
       invite_team: {
@@ -589,7 +589,7 @@ export default {
         cta: "Configurează acest spațiu de lucru",
       },
       personalize_account: {
-        title: "Personalizează Plane.",
+        title: "Personalizează Biplane.",
         description: "Alege-ți poza de profil, culorile și multe altele.",
         cta: "Personalizează acum",
       },
@@ -624,7 +624,7 @@ export default {
       },
     },
     new_at_plane: {
-      title: "Noutăți în Plane",
+      title: "Noutăți în Biplane",
     },
     quick_tutorial: {
       title: "Tutorial rapid",
@@ -1278,7 +1278,7 @@ export default {
   },
   workspace_creation: {
     heading: "Creează spațiul tău de lucru",
-    subheading: "Pentru a începe să folosești Plane, trebuie să creezi sau să te alături unui spațiu de lucru.",
+    subheading: "Pentru a începe să folosești Biplane, trebuie să creezi sau să te alături unui spațiu de lucru.",
     form: {
       name: {
         label: "Denumește-ți spațiul de lucru",
@@ -1333,11 +1333,11 @@ export default {
       general: {
         title: "Prezentare generală a proiectelor, activităților și statisticilor tale",
         description:
-          "Bine ai venit în Plane, suntem încântați să te avem aici. Creează primul tău proiect și urmărește activitățile, iar această pagină se va transforma într-un spațiu care te ajută să progresezi. Administratorii vor vedea și elementele care ajută echipa lor să progreseze.",
+          "Bine ai venit în Biplane, suntem încântați să te avem aici. Creează primul tău proiect și urmărește activitățile, iar această pagină se va transforma într-un spațiu care te ajută să progresezi. Administratorii vor vedea și elementele care ajută echipa lor să progreseze.",
         primary_button: {
           text: "Creează primul tău proiect",
           comic: {
-            title: "Totul începe cu un proiect în Plane",
+            title: "Totul începe cu un proiect în Biplane",
             description:
               "Un proiect poate fi planul de dezvoltare a unui produs, o campanie de marketing sau lansarea unei noi mașini.",
           },
@@ -1472,7 +1472,7 @@ export default {
         primary_button: {
           text: "Începe primul tău proiect",
           comic: {
-            title: "Totul începe cu un proiect în Plane",
+            title: "Totul începe cu un proiect în Biplane",
             description:
               "Un proiect poate fi o foaie de parcurs pentru un produs, o campanie de marketing sau lansarea unei noi mașini.",
           },
@@ -1485,7 +1485,7 @@ export default {
         primary_button: {
           text: "Începe primul tău proiect",
           comic: {
-            title: "Totul începe cu un proiect în Plane",
+            title: "Totul începe cu un proiect în Biplane",
             description:
               "Un proiect poate fi o foaie de parcurs pentru un produs, o campanie de marketing sau lansarea unei noi mașini.",
           },
@@ -1586,7 +1586,7 @@ export default {
     page_label: "{workspace} - Setări generale",
     key_created: "Cheie creată",
     copy_key:
-      "Copiază și salvează această cheie secretă în Plane Documentație. Nu vei mai putea vedea această cheie după ce închizi. Un fișier CSV care conține cheia a fost descărcat.",
+      "Copiază și salvează această cheie secretă în Biplane Documentație. Nu vei mai putea vedea această cheie după ce închizi. Un fișier CSV care conține cheia a fost descărcat.",
     token_copied: "Token-ul a fost copiat în memoria temporară.",
     settings: {
       general: {
@@ -1738,7 +1738,7 @@ export default {
         delete: {
           title: "Șterge cheia secretă API",
           description:
-            "Orice aplicație care folosește această cheie secretă nu va mai avea acces la datele Plane. Această acțiune este ireversibilă.",
+            "Orice aplicație care folosește această cheie secretă nu va mai avea acces la datele Biplane. Această acțiune este ireversibilă.",
           success: {
             title: "Succes!",
             message: "Cheia secretă API a fost ștearsă cu succes",
@@ -1754,7 +1754,7 @@ export default {
       api_tokens: {
         title: "Nicio cheie secretă API creată",
         description:
-          "API-ul Plane poate fi folosit pentru a integra datele tale din Plane cu orice sistem extern. Creează o cheie secretă pentru a începe.",
+          "API-ul Biplane poate fi folosit pentru a integra datele tale din Biplane cu orice sistem extern. Creează o cheie secretă pentru a începe.",
       },
       webhooks: {
         title: "Niciun punctul de notificare (webhook) adăugat",
@@ -1818,7 +1818,7 @@ export default {
       activity: {
         title: "Nicio activitate încă",
         description:
-          "Începe prin a crea o nouă activitate! Adaugă detalii și proprietăți. Explorează mai mult în Plane pentru a-ți vedea activitatea.",
+          "Începe prin a crea o nouă activitate! Adaugă detalii și proprietăți. Explorează mai mult în Biplane pentru a-ți vedea activitatea.",
       },
       assigned: {
         title: "Nicio activitate atribuită ție",
@@ -1972,12 +1972,12 @@ export default {
       label: "Automatizări",
       "auto-archive": {
         title: "Auto-arhivează activitățile finalizate",
-        description: "Plane va arhiva automat activitățile care au fost finalizate sau anulate.",
+        description: "Biplane va arhiva automat activitățile care au fost finalizate sau anulate.",
         duration: "Auto-arhivează activitățile finalizate de",
       },
       "auto-close": {
         title: "Închide automat activitățile",
-        description: "Plane va închide automat activitățile care nu au fost finalizate sau anulate.",
+        description: "Biplane va închide automat activitățile care nu au fost finalizate sau anulate.",
         duration: "Închide automat activitățile inactive de",
         auto_close_status: "Stare închidere automată",
       },
@@ -2167,9 +2167,9 @@ export default {
         primary_button: {
           text: "Creează prima ta activitate",
           comic: {
-            title: "Activitățile sunt elemente de bază în Plane.",
+            title: "Activitățile sunt elemente de bază în Biplane.",
             description:
-              "Reproiectarea interfeței Plane, modernizarea imaginii companiei sau lansarea noului sistem de injecție sunt exemple de activități care au, cel mai probabil, sub-activități.",
+              "Reproiectarea interfeței Biplane, modernizarea imaginii companiei sau lansarea noului sistem de injecție sunt exemple de activități care au, cel mai probabil, sub-activități.",
           },
         },
       },
@@ -2275,9 +2275,9 @@ export default {
     empty_state: {
       general: {
         title:
-          "Scrie o notiță, un document sau o bază completă de cunoștințe. Folosește-l pe Galileo, Inteligența Artificială a Plane, ca să te ajute să începi",
+          "Scrie o notiță, un document sau o bază completă de cunoștințe. Folosește-l pe Galileo, Inteligența Artificială a Biplane, ca să te ajute să începi",
         description:
-          "Documentația e spațiul în care îți notezi gândurile în Plane. Ia notițe de la ședințe, formatează-le ușor, inserează activități, așază-le folosind o bibliotecă de componente și păstrează-le pe toate în contextul proiectului tău. Pentru a redacta rapid orice document, apelează la Galileo, Inteligența Artificială a Plane, cu un shortcut sau un click.",
+          "Documentația e spațiul în care îți notezi gândurile în Biplane. Ia notițe de la ședințe, formatează-le ușor, inserează activități, așază-le folosind o bibliotecă de componente și păstrează-le pe toate în contextul proiectului tău. Pentru a redacta rapid orice document, apelează la Galileo, Inteligența Artificială a Biplane, cu un shortcut sau un click.",
         primary_button: {
           text: "Creează primul tău document",
         },
@@ -2655,7 +2655,7 @@ export default {
   },
   self_hosted_maintenance_message: {
     plane_didnt_start_up_this_could_be_because_one_or_more_plane_services_failed_to_start:
-      "Plane nu a pornit. Aceasta ar putea fi din cauza că unul sau mai multe servicii Plane au eșuat să pornească.",
+      "Biplane nu a pornit. Aceasta ar putea fi din cauza că unul sau mai multe servicii Biplane au eșuat să pornească.",
     choose_view_logs_from_setup_sh_and_docker_logs_to_be_sure:
       "Alegeți View Logs din setup.sh și logurile Docker pentru a fi siguri.",
   },

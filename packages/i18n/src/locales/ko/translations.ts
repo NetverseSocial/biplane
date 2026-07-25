@@ -403,7 +403,7 @@ export default {
   full_changelog: "전체 변경 로그",
   support: "지원",
   forum: "Forum",
-  powered_by_plane_pages: "Plane Pages 제공",
+  powered_by_plane_pages: "Biplane Pages 제공",
   please_select_at_least_one_invitation: "최소 하나의 초대를 선택하세요.",
   please_select_at_least_one_invitation_description: "작업 공간에 참여하려면 최소 하나의 초대를 선택하세요.",
   we_see_that_someone_has_invited_you_to_join_a_workspace: "누군가가 작업 공간에 참여하도록 초대했습니다",
@@ -1566,7 +1566,7 @@ export default {
     page_label: "{workspace} - 일반 설정",
     key_created: "키 생성됨",
     copy_key:
-      "이 비밀 키를 Plane Pages에 복사하고 저장하세요. 닫기 버튼을 누른 후에는 이 키를 볼 수 없습니다. 키가 포함된 CSV 파일이 다운로드되었습니다.",
+      "이 비밀 키를 Biplane Pages에 복사하고 저장하세요. 닫기 버튼을 누른 후에는 이 키를 볼 수 없습니다. 키가 포함된 CSV 파일이 다운로드되었습니다.",
     token_copied: "토큰이 클립보드에 복사되었습니다.",
     settings: {
       general: {
@@ -1717,7 +1717,7 @@ export default {
         delete: {
           title: "API 토큰 삭제",
           description:
-            "이 토큰을 사용하는 애플리케이션은 더 이상 Plane 데이터에 접근할 수 없습니다. 이 작업은 되돌릴 수 없습니다.",
+            "이 토큰을 사용하는 애플리케이션은 더 이상 Biplane 데이터에 접근할 수 없습니다. 이 작업은 되돌릴 수 없습니다.",
           success: {
             title: "성공!",
             message: "API 토큰이 성공적으로 삭제되었습니다",
@@ -1733,7 +1733,7 @@ export default {
       api_tokens: {
         title: "생성된 API 토큰 없음",
         description:
-          "Plane API를 사용하여 Plane의 데이터를 외부 시스템과 통합할 수 있습니다. 토큰을 생성하여 시작하세요.",
+          "Biplane API를 사용하여 Plane의 데이터를 외부 시스템과 통합할 수 있습니다. 토큰을 생성하여 시작하세요.",
       },
       webhooks: {
         title: "추가된 웹훅 없음",
@@ -2148,7 +2148,7 @@ export default {
           comic: {
             title: "작업 항목은 Plane의 구성 요소입니다.",
             description:
-              "Plane UI 재설계, 회사 리브랜딩 또는 새로운 연료 주입 시스템 출시와 같은 작업 항목은 하위 작업 항목이 있을 가능성이 큽니다.",
+              "Biplane UI 재설계, 회사 리브랜딩 또는 새로운 연료 주입 시스템 출시와 같은 작업 항목은 하위 작업 항목이 있을 가능성이 큽니다.",
           },
         },
       },
@@ -2624,7 +2624,7 @@ export default {
   },
   self_hosted_maintenance_message: {
     plane_didnt_start_up_this_could_be_because_one_or_more_plane_services_failed_to_start:
-      "Plane이 시작되지 않았습니다. 이는 하나 이상의 Plane 서비스가 시작에 실패했기 때문일 수 있습니다.",
+      "Plane이 시작되지 않았습니다. 이는 하나 이상의 Biplane 서비스가 시작에 실패했기 때문일 수 있습니다.",
     choose_view_logs_from_setup_sh_and_docker_logs_to_be_sure:
       "확실히 하려면 setup.sh와 Docker 로그에서 View Logs를 선택하세요.",
   },

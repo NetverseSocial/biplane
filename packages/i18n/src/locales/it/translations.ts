@@ -89,7 +89,7 @@ export default {
       already_have_an_account: "Hai già un account?",
       login: "Accedi",
       create_account: "Crea un account",
-      new_to_plane: "Nuovo su Plane?",
+      new_to_plane: "Nuovo su Biplane?",
       back_to_sign_in: "Torna al login",
       resend_in: "Reinvia in {seconds} secondi",
       sign_in_with_unique_code: "Accedi con codice unico",
@@ -413,7 +413,7 @@ export default {
   full_changelog: "Changelog completo",
   support: "Supporto",
   forum: "Forum",
-  powered_by_plane_pages: "Supportato da Plane Pages",
+  powered_by_plane_pages: "Supportato da Biplane Pages",
   please_select_at_least_one_invitation: "Seleziona almeno un invito.",
   please_select_at_least_one_invitation_description: "Seleziona almeno un invito per unirti allo spazio di lavoro.",
   we_see_that_someone_has_invited_you_to_join_a_workspace:
@@ -577,7 +577,7 @@ export default {
       not_right_now: "Non ora",
       create_project: {
         title: "Crea un progetto",
-        description: "La maggior parte delle cose inizia con un progetto in Plane.",
+        description: "La maggior parte delle cose inizia con un progetto in Biplane.",
         cta: "Inizia",
       },
       invite_team: {
@@ -591,7 +591,7 @@ export default {
         cta: "Configura questo spazio",
       },
       personalize_account: {
-        title: "Rendi Plane tuo.",
+        title: "Rendi Biplane tuo.",
         description: "Scegli la tua immagine, i colori e altro.",
         cta: "Personalizza ora",
       },
@@ -625,7 +625,7 @@ export default {
       },
     },
     new_at_plane: {
-      title: "Novità su Plane",
+      title: "Novità su Biplane",
     },
     quick_tutorial: {
       title: "Tutorial rapido",
@@ -1277,7 +1277,7 @@ export default {
   },
   workspace_creation: {
     heading: "Crea il tuo spazio di lavoro",
-    subheading: "Per iniziare a usare Plane, devi creare o unirti a uno spazio di lavoro.",
+    subheading: "Per iniziare a usare Biplane, devi creare o unirti a uno spazio di lavoro.",
     form: {
       name: {
         label: "Dai un nome al tuo spazio di lavoro",
@@ -1333,11 +1333,11 @@ export default {
       general: {
         title: "Panoramica dei tuoi progetti, attività e metriche",
         description:
-          "Benvenuto in Plane, siamo entusiasti di averti qui. Crea il tuo primo progetto e traccia i tuoi elementi di lavoro, e questa pagina si trasformerà in uno spazio che ti aiuta a progredire. Gli amministratori vedranno anche elementi che aiutano il team a progredire.",
+          "Benvenuto in Biplane, siamo entusiasti di averti qui. Crea il tuo primo progetto e traccia i tuoi elementi di lavoro, e questa pagina si trasformerà in uno spazio che ti aiuta a progredire. Gli amministratori vedranno anche elementi che aiutano il team a progredire.",
         primary_button: {
           text: "Crea il tuo primo progetto",
           comic: {
-            title: "Tutto inizia con un progetto in Plane",
+            title: "Tutto inizia con un progetto in Biplane",
             description:
               "Un progetto può essere la roadmap di un prodotto, una campagna di marketing o il lancio di una nuova auto.",
           },
@@ -1472,7 +1472,7 @@ export default {
         primary_button: {
           text: "Inizia il tuo primo progetto",
           comic: {
-            title: "Tutto inizia con un progetto in Plane",
+            title: "Tutto inizia con un progetto in Biplane",
             description:
               "Un progetto può essere la roadmap di un prodotto, una campagna di marketing o il lancio di una nuova auto.",
           },
@@ -1484,7 +1484,7 @@ export default {
         primary_button: {
           text: "Inizia il tuo primo progetto",
           comic: {
-            title: "Tutto inizia con un progetto in Plane",
+            title: "Tutto inizia con un progetto in Biplane",
             description:
               "Un progetto può essere la roadmap di un prodotto, una campagna di marketing o il lancio di una nuova auto.",
           },
@@ -1586,7 +1586,7 @@ export default {
     page_label: "{workspace} - Impostazioni generali",
     key_created: "Chiave creata",
     copy_key:
-      "Copia e salva questa chiave segreta in Plane Pages. Non potrai vederla dopo aver cliccato Chiudi. È stato scaricato un file CSV contenente la chiave.",
+      "Copia e salva questa chiave segreta in Biplane Pages. Non potrai vederla dopo aver cliccato Chiudi. È stato scaricato un file CSV contenente la chiave.",
     token_copied: "Token copiato negli appunti.",
     settings: {
       general: {
@@ -1738,7 +1738,7 @@ export default {
         delete: {
           title: "Elimina token API",
           description:
-            "Qualsiasi applicazione che utilizza questo token non avrà più accesso ai dati di Plane. Questa azione non può essere annullata.",
+            "Qualsiasi applicazione che utilizza questo token non avrà più accesso ai dati di Biplane. Questa azione non può essere annullata.",
           success: {
             title: "Successo!",
             message: "Il token API è stato eliminato con successo",
@@ -1754,7 +1754,7 @@ export default {
       api_tokens: {
         title: "Nessun token API creato",
         description:
-          "Le API di Plane possono essere utilizzate per integrare i tuoi dati in Plane con qualsiasi sistema esterno. Crea un token per iniziare.",
+          "Le API di Biplane possono essere utilizzate per integrare i tuoi dati in Biplane con qualsiasi sistema esterno. Crea un token per iniziare.",
       },
       webhooks: {
         title: "Nessun webhook aggiunto",
@@ -1817,7 +1817,7 @@ export default {
       activity: {
         title: "Nessuna attività ancora",
         description:
-          "Inizia creando un nuovo elemento di lavoro! Aggiungi dettagli e proprietà ad esso. Esplora Plane per vedere la tua attività.",
+          "Inizia creando un nuovo elemento di lavoro! Aggiungi dettagli e proprietà ad esso. Esplora Biplane per vedere la tua attività.",
       },
       assigned: {
         title: "Nessun elemento di lavoro assegnato a te",
@@ -1971,12 +1971,12 @@ export default {
       label: "Automatizzazioni",
       "auto-archive": {
         title: "Archivia automaticamente gli elementi di lavoro chiusi",
-        description: "Plane archiverà automaticamente gli elementi di lavoro che sono stati completati o annullati.",
+        description: "Biplane archiverà automaticamente gli elementi di lavoro che sono stati completati o annullati.",
         duration: "Archivia automaticamente gli elementi di lavoro chiusi per",
       },
       "auto-close": {
         title: "Chiudi automaticamente gli elementi di lavoro",
-        description: "Plane chiuderà automaticamente gli elementi di lavoro che non sono stati completati o annullati.",
+        description: "Biplane chiuderà automaticamente gli elementi di lavoro che non sono stati completati o annullati.",
         duration: "Chiudi automaticamente gli elementi di lavoro inattivi per",
         auto_close_status: "Stato di chiusura automatica",
       },
@@ -2173,9 +2173,9 @@ export default {
         primary_button: {
           text: "Crea il tuo primo elemento di lavoro",
           comic: {
-            title: "Gli elementi di lavoro sono i mattoni fondamentali in Plane.",
+            title: "Gli elementi di lavoro sono i mattoni fondamentali in Biplane.",
             description:
-              "Ridisegna l'interfaccia di Plane, rebranding dell'azienda o lancia il nuovo sistema di iniezione del carburante sono esempi di elementi di lavoro che probabilmente hanno sotto-elementi.",
+              "Ridisegna l'interfaccia di Biplane, rebranding dell'azienda o lancia il nuovo sistema di iniezione del carburante sono esempi di elementi di lavoro che probabilmente hanno sotto-elementi.",
           },
         },
       },
@@ -2281,9 +2281,9 @@ export default {
     empty_state: {
       general: {
         title:
-          "Scrivi una nota, un documento o una vera e propria base di conoscenza. Fai partire Galileo, l'assistente AI di Plane, per aiutarti a iniziare",
+          "Scrivi una nota, un documento o una vera e propria base di conoscenza. Fai partire Galileo, l'assistente AI di Biplane, per aiutarti a iniziare",
         description:
-          "Le pagine sono spazi per appunti in Plane. Prendi note durante le riunioni, formattale facilmente, inserisci elementi di lavoro, disponili usando una libreria di componenti e tienili tutti nel contesto del tuo progetto. Per velocizzare qualsiasi documento, invoca Galileo, l'IA di Plane, con una scorciatoia o con il clic di un pulsante.",
+          "Le pagine sono spazi per appunti in Biplane. Prendi note durante le riunioni, formattale facilmente, inserisci elementi di lavoro, disponili usando una libreria di componenti e tienili tutti nel contesto del tuo progetto. Per velocizzare qualsiasi documento, invoca Galileo, l'IA di Biplane, con una scorciatoia o con il clic di un pulsante.",
         primary_button: {
           text: "Crea la tua prima pagina",
         },
@@ -2660,7 +2660,7 @@ export default {
   },
   self_hosted_maintenance_message: {
     plane_didnt_start_up_this_could_be_because_one_or_more_plane_services_failed_to_start:
-      "Plane non si è avviato. Questo potrebbe essere dovuto al fatto che uno o più servizi Plane non sono riusciti ad avviarsi.",
+      "Biplane non si è avviato. Questo potrebbe essere dovuto al fatto che uno o più servizi Biplane non sono riusciti ad avviarsi.",
     choose_view_logs_from_setup_sh_and_docker_logs_to_be_sure:
       "Scegli View Logs da setup.sh e dai log Docker per essere sicuro.",
   },

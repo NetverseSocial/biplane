@@ -408,7 +408,7 @@ export default {
   full_changelog: "完全な変更履歴",
   support: "サポート",
   forum: "Forum",
-  powered_by_plane_pages: "Powered by Plane Pages",
+  powered_by_plane_pages: "Powered by Biplane Pages",
   please_select_at_least_one_invitation: "少なくとも1つの招待を選択してください。",
   please_select_at_least_one_invitation_description:
     "ワークスペースに参加するには少なくとも1つの招待を選択してください。",

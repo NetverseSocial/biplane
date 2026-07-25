@@ -30,7 +30,7 @@ const defaultValues: Partial<IWorkspace> = {
   url: "",
   organization_size: "2-10",
   logo_url: null,
-  timezone: "UTC",
+  timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
 };
 
 export const WorkspaceDetails = observer(function WorkspaceDetails() {

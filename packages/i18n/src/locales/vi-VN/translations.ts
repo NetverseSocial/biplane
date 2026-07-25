@@ -89,7 +89,7 @@ export default {
       already_have_an_account: "Đã có tài khoản?",
       login: "Đăng nhập",
       create_account: "Tạo tài khoản",
-      new_to_plane: "Lần đầu sử dụng Plane?",
+      new_to_plane: "Lần đầu sử dụng Biplane?",
       back_to_sign_in: "Quay lại đăng nhập",
       resend_in: "Gửi lại sau {seconds} giây",
       sign_in_with_unique_code: "Đăng nhập bằng mã duy nhất",
@@ -412,7 +412,7 @@ export default {
   full_changelog: "Nhật ký thay đổi đầy đủ",
   support: "Hỗ trợ",
   forum: "Forum",
-  powered_by_plane_pages: "Được hỗ trợ bởi Plane Pages",
+  powered_by_plane_pages: "Được hỗ trợ bởi Biplane Pages",
   please_select_at_least_one_invitation: "Vui lòng chọn ít nhất một lời mời.",
   please_select_at_least_one_invitation_description:
     "Vui lòng chọn ít nhất một lời mời để tham gia không gian làm việc.",
@@ -577,7 +577,7 @@ export default {
       not_right_now: "Không phải bây giờ",
       create_project: {
         title: "Tạo dự án",
-        description: "Trong Plane, hầu hết mọi thứ đều bắt đầu từ dự án.",
+        description: "Trong Biplane, hầu hết mọi thứ đều bắt đầu từ dự án.",
         cta: "Bắt đầu",
       },
       invite_team: {
@@ -591,7 +591,7 @@ export default {
         cta: "Cấu hình không gian làm việc này",
       },
       personalize_account: {
-        title: "Cá nhân hóa Plane cho bạn",
+        title: "Cá nhân hóa Biplane cho bạn",
         description: "Chọn ảnh đại diện, màu sắc và nhiều hơn nữa.",
         cta: "Cá nhân hóa ngay",
       },
@@ -626,7 +626,7 @@ export default {
       },
     },
     new_at_plane: {
-      title: "Tính năng mới của Plane",
+      title: "Tính năng mới của Biplane",
     },
     quick_tutorial: {
       title: "Hướng dẫn nhanh",
@@ -1279,7 +1279,7 @@ export default {
   },
   workspace_creation: {
     heading: "Tạo không gian làm việc của bạn",
-    subheading: "Để bắt đầu với Plane, bạn cần tạo hoặc tham gia một không gian làm việc.",
+    subheading: "Để bắt đầu với Biplane, bạn cần tạo hoặc tham gia một không gian làm việc.",
     form: {
       name: {
         label: "Đặt tên cho không gian làm việc của bạn",
@@ -1334,11 +1334,11 @@ export default {
       general: {
         title: "Tổng quan về dự án, hoạt động và chỉ số",
         description:
-          "Chào mừng đến với Plane, chúng tôi rất vui khi bạn ở đây. Tạo dự án đầu tiên của bạn và theo dõi mục công việc, trang này sẽ trở thành không gian giúp bạn tiến triển. Quản trị viên cũng sẽ thấy dự án giúp nhóm tiến triển.",
+          "Chào mừng đến với Biplane, chúng tôi rất vui khi bạn ở đây. Tạo dự án đầu tiên của bạn và theo dõi mục công việc, trang này sẽ trở thành không gian giúp bạn tiến triển. Quản trị viên cũng sẽ thấy dự án giúp nhóm tiến triển.",
         primary_button: {
           text: "Xây dựng dự án đầu tiên của bạn",
           comic: {
-            title: "Trong Plane, mọi thứ đều bắt đầu với dự án",
+            title: "Trong Biplane, mọi thứ đều bắt đầu với dự án",
             description: "Dự án có thể là lộ trình sản phẩm, chiến dịch tiếp thị hoặc ra mắt xe mới.",
           },
         },
@@ -1471,7 +1471,7 @@ export default {
         primary_button: {
           text: "Bắt đầu dự án đầu tiên của bạn",
           comic: {
-            title: "Trong Plane, mọi thứ đều bắt đầu với dự án",
+            title: "Trong Biplane, mọi thứ đều bắt đầu với dự án",
             description: "Dự án có thể là lộ trình sản phẩm, chiến dịch tiếp thị hoặc ra mắt xe mới.",
           },
         },
@@ -1483,7 +1483,7 @@ export default {
         primary_button: {
           text: "Bắt đầu dự án đầu tiên của bạn",
           comic: {
-            title: "Trong Plane, mọi thứ đều bắt đầu với dự án",
+            title: "Trong Biplane, mọi thứ đều bắt đầu với dự án",
             description: "Dự án có thể là lộ trình sản phẩm, chiến dịch tiếp thị hoặc ra mắt xe mới.",
           },
         },
@@ -1583,7 +1583,7 @@ export default {
     page_label: "{workspace} - Cài đặt chung",
     key_created: "Đã tạo khóa",
     copy_key:
-      "Sao chép và lưu khóa này trong Plane Pages. Bạn sẽ không thể thấy khóa này sau khi đóng. Tệp CSV chứa khóa đã được tải xuống.",
+      "Sao chép và lưu khóa này trong Biplane Pages. Bạn sẽ không thể thấy khóa này sau khi đóng. Tệp CSV chứa khóa đã được tải xuống.",
     token_copied: "Đã sao chép token vào bảng tạm.",
     settings: {
       general: {
@@ -1734,7 +1734,7 @@ export default {
         delete: {
           title: "Xóa token API",
           description:
-            "Bất kỳ ứng dụng nào sử dụng token này sẽ không thể truy cập dữ liệu Plane nữa. Hành động này không thể hoàn tác.",
+            "Bất kỳ ứng dụng nào sử dụng token này sẽ không thể truy cập dữ liệu Biplane nữa. Hành động này không thể hoàn tác.",
           success: {
             title: "Thành công!",
             message: "Đã xóa token API thành công",
@@ -1750,7 +1750,7 @@ export default {
       api_tokens: {
         title: "Chưa tạo token API",
         description:
-          "API Plane có thể được sử dụng để tích hợp dữ liệu Plane của bạn với bất kỳ hệ thống bên ngoài nào. Tạo token để bắt đầu.",
+          "API Biplane có thể được sử dụng để tích hợp dữ liệu Biplane của bạn với bất kỳ hệ thống bên ngoài nào. Tạo token để bắt đầu.",
       },
       webhooks: {
         title: "Chưa thêm webhook",
@@ -1813,7 +1813,7 @@ export default {
       activity: {
         title: "Chưa có hoạt động",
         description:
-          "Bắt đầu bằng cách tạo mục công việc mới! Thêm chi tiết và thuộc tính cho nó. Khám phá thêm trong Plane để xem hoạt động của bạn.",
+          "Bắt đầu bằng cách tạo mục công việc mới! Thêm chi tiết và thuộc tính cho nó. Khám phá thêm trong Biplane để xem hoạt động của bạn.",
       },
       assigned: {
         title: "Không có mục công việc nào được giao cho bạn",
@@ -1965,12 +1965,12 @@ export default {
       label: "Tự động hóa",
       "auto-archive": {
         title: "Tự động lưu trữ mục công việc đã đóng",
-        description: "Plane sẽ tự động lưu trữ các mục công việc đã hoàn thành hoặc đã hủy.",
+        description: "Biplane sẽ tự động lưu trữ các mục công việc đã hoàn thành hoặc đã hủy.",
         duration: "Tự động lưu trữ đã đóng",
       },
       "auto-close": {
         title: "Tự động đóng mục công việc",
-        description: "Plane sẽ tự động đóng các mục công việc chưa hoàn thành hoặc hủy.",
+        description: "Biplane sẽ tự động đóng các mục công việc chưa hoàn thành hoặc hủy.",
         duration: "Tự động đóng không hoạt động",
         auto_close_status: "Trạng thái tự động đóng",
       },
@@ -2166,9 +2166,9 @@ export default {
         primary_button: {
           text: "Tạo mục công việc đầu tiên của bạn",
           comic: {
-            title: "Mục công việc là khối xây dựng cơ bản trong Plane.",
+            title: "Mục công việc là khối xây dựng cơ bản trong Biplane.",
             description:
-              "Thiết kế lại giao diện Plane, định vị lại thương hiệu công ty hoặc ra mắt hệ thống phun nhiên liệu mới đều là ví dụ về mục công việc có thể chứa các mục công việc con.",
+              "Thiết kế lại giao diện Biplane, định vị lại thương hiệu công ty hoặc ra mắt hệ thống phun nhiên liệu mới đều là ví dụ về mục công việc có thể chứa các mục công việc con.",
           },
         },
       },
@@ -2272,9 +2272,9 @@ export default {
   project_page: {
     empty_state: {
       general: {
-        title: "Viết ghi chú, tài liệu hoặc cơ sở kiến thức đầy đủ. Để trợ lý AI Galileo của Plane giúp bạn bắt đầu",
+        title: "Viết ghi chú, tài liệu hoặc cơ sở kiến thức đầy đủ. Để trợ lý AI Galileo của Biplane giúp bạn bắt đầu",
         description:
-          "Trang là không gian ghi lại suy nghĩ trong Plane. Ghi lại các ghi chú cuộc họp, định dạng dễ dàng, nhúng mục công việc, sử dụng thư viện thành phần để bố cục và lưu tất cả trong ngữ cảnh dự án. Để hoàn thành nhanh bất kỳ tài liệu nào, bạn có thể gọi AI Galileo của Plane thông qua phím tắt hoặc nhấp nút.",
+          "Trang là không gian ghi lại suy nghĩ trong Biplane. Ghi lại các ghi chú cuộc họp, định dạng dễ dàng, nhúng mục công việc, sử dụng thư viện thành phần để bố cục và lưu tất cả trong ngữ cảnh dự án. Để hoàn thành nhanh bất kỳ tài liệu nào, bạn có thể gọi AI Galileo của Biplane thông qua phím tắt hoặc nhấp nút.",
         primary_button: {
           text: "Tạo trang đầu tiên của bạn",
         },
@@ -2650,7 +2650,7 @@ export default {
   },
   self_hosted_maintenance_message: {
     plane_didnt_start_up_this_could_be_because_one_or_more_plane_services_failed_to_start:
-      "Plane không khởi động được. Điều này có thể do một hoặc nhiều dịch vụ Plane không khởi động được.",
+      "Biplane không khởi động được. Điều này có thể do một hoặc nhiều dịch vụ Biplane không khởi động được.",
     choose_view_logs_from_setup_sh_and_docker_logs_to_be_sure: "Chọn View Logs từ setup.sh và log Docker để chắc chắn.",
   },
   page_navigation_pane: {

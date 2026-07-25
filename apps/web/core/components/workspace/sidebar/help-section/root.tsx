@@ -6,7 +6,7 @@
 
 // biplane: the help menu points at OUR resources on GitHub (docs = README, what's-new =
 // Releases, forum = Discussions), each of which links back to Plane's originals. Contact
-// Sales is gone (nothing to sell). "What's new in Plane" keeps upstream's changelog modal,
+// Sales is gone (nothing to sell). "What's new in Biplane" keeps upstream's changelog modal,
 // clearly labeled.
 import React, { useState } from "react";
 import { observer } from "mobx-react";
@@ -85,7 +85,7 @@ export const HelpMenuRoot = observer(function HelpMenuRoot() {
             onClick={() => setProductUpdatesModalOpen(true)}
             className="justify-sbg-layer-211 flex w-full items-center hover:bg-layer-1"
           >
-            <span className="text-11">What&apos;s new in Plane</span>
+            <span className="text-11">What&apos;s new in Biplane</span>
           </button>
         </CustomMenu.MenuItem>
         <div className="mt-1 border-t border-subtle px-1 pt-2 text-11 text-secondary">

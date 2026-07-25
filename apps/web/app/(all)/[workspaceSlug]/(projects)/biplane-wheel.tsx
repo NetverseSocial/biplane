@@ -14,7 +14,7 @@ import {
   type WheelModel,
 } from "./biplane-wheel-geometry";
 
-// Fetch the project's issues + states from Plane's internal API (same-origin, cookie-authed — the
+// Fetch the project's issues + states from Biplane's internal API (same-origin, cookie-authed — the
 // same surface the rest of the web app uses) and shape them for the pure wheel geometry. State
 // detail (group/colour/name) is joined from /states/ since the issue list carries only a state id.
 export interface ProjectState {

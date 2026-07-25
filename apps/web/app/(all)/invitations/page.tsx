@@ -15,7 +15,7 @@ import { ROLE } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 // types
 import { Button } from "@plane/propel/button";
-import { PlaneLogo } from "@plane/propel/icons";
+import { BiplaneLogo as PlaneLogo, BiplaneLockup as PlaneLockup } from "@/components/common/biplane-brand";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { IWorkspaceMemberInvitation } from "@plane/types";
 import { truncateText } from "@plane/utils";

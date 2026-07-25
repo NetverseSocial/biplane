@@ -6,7 +6,8 @@
 
 import { observer } from "mobx-react";
 // plane imports
-import { PlaneLockup, ChevronLeftIcon } from "@plane/propel/icons";
+import { ChevronLeftIcon } from "@plane/propel/icons";
+import { BiplaneLogo as PlaneLogo, BiplaneLockup as PlaneLockup } from "@/components/common/biplane-brand";
 import { Tooltip } from "@plane/propel/tooltip";
 import type { TOnboardingStep } from "@plane/types";
 import { EOnboardingSteps } from "@plane/types";

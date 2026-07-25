@@ -8,7 +8,8 @@ import { useState } from "react";
 import { observer } from "mobx-react";
 // plane imports
 import { Button } from "@plane/propel/button";
-import { CloseIcon, PlaneLockup } from "@plane/propel/icons";
+import { CloseIcon } from "@plane/propel/icons";
+import { BiplaneLogo as PlaneLogo, BiplaneLockup as PlaneLockup } from "@/components/common/biplane-brand";
 // assets
 import CyclesTour from "@/app/assets/onboarding/cycles.webp?url";
 import IssuesTour from "@/app/assets/onboarding/issues.webp?url";
@@ -39,7 +40,7 @@ const TOUR_STEPS: {
     key: "work-items",
     title: "Plan with work items",
     description:
-      "The work item is the building block of the Plane. Most concepts in Plane are either associated with work items and their properties.",
+      "The work item is the building block of the Biplane. Most concepts in Biplane are either associated with work items and their properties.",
     image: IssuesTour,
     nextStep: "cycles",
   },

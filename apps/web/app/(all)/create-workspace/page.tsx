@@ -10,7 +10,7 @@ import Link from "next/link";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import { Button, getButtonStyling } from "@plane/propel/button";
-import { PlaneLogo } from "@plane/propel/icons";
+import { BiplaneLogo as PlaneLogo, BiplaneLockup as PlaneLockup } from "@/components/common/biplane-brand";
 import type { IWorkspace } from "@plane/types";
 // assets
 import WorkspaceCreationDisabled from "@/app/assets/workspace/workspace-creation-disabled.png?url";
