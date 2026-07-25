@@ -305,6 +305,7 @@ export function friendlyTime(iso: string): string {
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
+    hour12: !(typeof localStorage !== "undefined" && localStorage.getItem("biplane_time_format") === "24-hour"),
   });
 }
 

@@ -19,7 +19,7 @@ export function ProfileSidebarTime(props: Props) {
   // Create a date object for the current time in the specified timezone
   const formatter = new Intl.DateTimeFormat("en-US", {
     timeZone: timeZone,
-    hour12: false, // Use 24-hour format
+    hour12: !(typeof localStorage !== "undefined" && localStorage.getItem("biplane_time_format") === "24-hour"),
     hour: "2-digit",
     minute: "2-digit",
   });
