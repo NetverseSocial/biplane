@@ -36,9 +36,12 @@ export function UserGreetingsView(props: IUserGreetingsView) {
     weekday: "long",
   }).format(currentTime);
 
+  // biplane: honor the user's clock preference (12-hour is the deployment default)
+  const prefers24h =
+    typeof localStorage !== "undefined" && localStorage.getItem("biplane_time_format") === "24-hour";
   const timeString = new Intl.DateTimeFormat("en-US", {
     timeZone: user?.user_timezone,
-    hour12: false, // Use 24-hour format
+    hour12: !prefers24h,
     hour: "2-digit",
     minute: "2-digit",
   }).format(currentTime);
