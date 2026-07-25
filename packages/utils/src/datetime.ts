@@ -82,7 +82,19 @@ export const renderFormattedPayloadDate = (date: Date | string | undefined | nul
  * @example renderFormattedTime("2024-01-01 13:00:00") // 13:00
  * @example renderFormattedTime("2024-01-01 13:00:00", "12-hour") // 01:00 PM
  */
-export const renderFormattedTime = (date: string | Date, timeFormat: "12-hour" | "24-hour" = "24-hour"): string => {
+// biplane: app-wide default clock preference (set from the user profile at load; 12-hour is the deployment default)
+let __defaultTimeFormat: "12-hour" | "24-hour" =
+  (typeof localStorage !== "undefined" && (localStorage.getItem("biplane_time_format") as "12-hour" | "24-hour")) ||
+  "12-hour";
+export const setDefaultTimeFormat = (f: "12-hour" | "24-hour") => {
+  __defaultTimeFormat = f;
+  try {
+    localStorage.setItem("biplane_time_format", f);
+  } catch {
+    /* ssr */
+  }
+};
+export const renderFormattedTime = (date: string | Date, timeFormat: "12-hour" | "24-hour" = __defaultTimeFormat): string => {
   // Parse the date to check if it is valid
   const parsedDate = new Date(date);
   // return if undefined

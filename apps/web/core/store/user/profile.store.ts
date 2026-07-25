@@ -5,6 +5,7 @@
  */
 
 import { cloneDeep, set } from "lodash-es";
+import { setDefaultTimeFormat } from "@plane/utils";
 import { action, makeObservable, observable, runInAction } from "mobx";
 // types
 import type { IUserTheme, TUserProfile } from "@plane/types";
@@ -85,6 +86,9 @@ export class ProfileStore implements IUserProfileStore {
   }
 
   // helper action
+  syncTimeFormat = (d: any) => {
+    if (d?.time_format) setDefaultTimeFormat(d.time_format);
+  };
   mutateUserProfile = (data: Partial<TUserProfile>) => {
     if (!data) return;
     Object.entries(data).forEach(([key, value]) => {
@@ -133,6 +137,7 @@ export class ProfileStore implements IUserProfileStore {
         this.mutateUserProfile(data);
       }
       const userProfile = await this.userService.updateCurrentUserProfile(data);
+      if ((userProfile as any)?.time_format) setDefaultTimeFormat((userProfile as any).time_format);
       return userProfile;
     } catch {
       if (currentUserProfileData) {

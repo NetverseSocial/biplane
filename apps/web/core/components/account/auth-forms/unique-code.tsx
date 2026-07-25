@@ -92,6 +92,7 @@ export function AuthUniqueCodeForm(props: TAuthUniqueCodeForm) {
       }}
     >
       <input type="hidden" name="csrfmiddlewaretoken" value={csrfToken} />
+      <input type="hidden" name="user_timezone" value={Intl.DateTimeFormat().resolvedOptions().timeZone} />
       <input type="hidden" value={uniqueCodeFormData.email} name="email" />
       {nextPath && <input type="hidden" value={nextPath} name="next_path" />}
       <div className="space-y-1">

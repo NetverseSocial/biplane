@@ -62,6 +62,15 @@ export const ProfileSettingsLanguageAndTimezonePreferencesList = observer(
       }
     };
 
+    const handleTimeFormatChange = async (value: string) => {
+      try {
+        await updateUserProfile({ time_format: value } as any);
+        setToast({ title: "Success!", message: "Time format updated", type: TOAST_TYPE.SUCCESS });
+      } catch (_error) {
+        setToast({ title: "Error!", message: "Failed to update time format", type: TOAST_TYPE.ERROR });
+      }
+    };
+
     const getLanguageLabel = (value: string) => {
       const selectedLanguage = SUPPORTED_LANGUAGES.find((l) => l.value === value);
       if (!selectedLanguage) return value;
@@ -71,9 +80,24 @@ export const ProfileSettingsLanguageAndTimezonePreferencesList = observer(
     return (
       <div className="flex flex-col gap-y-1">
         <SettingsControlItem
+          title="Time format"
+          description="How times are shown across Biplane."
+          control={
+            <CustomSelect
+              value={(profile as any)?.time_format || "12-hour"}
+              label={((profile as any)?.time_format || "12-hour") === "12-hour" ? "12-hour (AM/PM)" : "24-hour"}
+              onChange={handleTimeFormatChange}
+              input
+            >
+              <CustomSelect.Option value="12-hour">12-hour (AM/PM)</CustomSelect.Option>
+              <CustomSelect.Option value="24-hour">24-hour</CustomSelect.Option>
+            </CustomSelect>
+          }
+        />
+        <SettingsControlItem
           title={t("timezone")}
           description={t("timezone_setting")}
-          control={<TimezoneSelect value={user?.user_timezone || "Asia/Kolkata"} onChange={handleTimezoneChange} />}
+          control={<TimezoneSelect value={user?.user_timezone || Intl.DateTimeFormat().resolvedOptions().timeZone} onChange={handleTimezoneChange} />}
         />
         <SettingsControlItem
           title={t("language")}
