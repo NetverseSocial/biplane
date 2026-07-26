@@ -1,5 +1,5 @@
-// biplane Enhanced Wheel — the multi-ring sunburst, ported from the SBPM wheel
-// (sbl/pm src/app.ts, the loadWheel/ring logic) and re-pointed at Plane's issue data.
+// biplane Enhanced Wheel — the multi-ring sunburst, ported from an earlier internal wheel prototype
+// (adapted wheel/ring layout logic, re-pointed at Plane's issue data).
 //
 // Layout, per ticket, as a radial slice whose angular width scales with priority:
 //   inner ring  = the ticket's state as of the cutoff (24h ago) — the "change ring"
@@ -35,7 +35,7 @@ export interface PlaneIssue {
 export type Bucket = "done" | "started" | "unstarted" | "backlog" | "cancelled";
 
 // Priority → angular weight. Urgent slices are the widest; none/low the thinnest.
-// (SBPM used P1:3/P2:2/P3:1; Plane has a 5-level scale so urgent gets its own step.)
+// (the prototype used P1:3/P2:2/P3:1; Plane has a 5-level scale so urgent gets its own step.)
 export const PRIORITY_WIDTH: Record<Priority, number> = {
   urgent: 4,
   high: 3,
@@ -53,7 +53,7 @@ export const GROUP_BUCKET: Record<StateGroup, Bucket> = {
   cancelled: "cancelled",
 };
 
-// Bucket → ring colour (matches the SBPM wheel palette; cancelled added for Plane).
+// Bucket → ring colour (matches the original wheel palette; cancelled added for Plane).
 export const BUCKET_COLOR: Record<Bucket, string> = {
   done: "#2fbf71", // green
   started: "#4f9cf9", // blue  (in progress / building)
@@ -81,7 +81,7 @@ const PREDECESSOR: Record<Bucket, Bucket> = {
   cancelled: "cancelled", // cancellation has no meaningful "prior lane"
 };
 
-// Distinct, saturated hues for module lanes (ported from SBPM LANES_C).
+// Distinct, saturated hues for module lanes (ported from the prototype lane palette).
 export const LANE_COLORS = [
   "#6c4bd1",
   "#d14b8f",
@@ -270,7 +270,7 @@ export function buildWheelModel(issues: PlaneIssue[], opts: BuildOpts = {}): Whe
 
 // ---- SVG ----
 
-// Annular-arc path between radii ri..ro over angles a0..a1 (ported verbatim from SBPM).
+// Annular-arc path between radii ri..ro over angles a0..a1 (ported verbatim from the prototype).
 export function ringPath(
   cx: number,
   cy: number,

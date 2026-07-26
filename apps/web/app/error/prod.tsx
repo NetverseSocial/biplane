@@ -17,17 +17,17 @@ const linkMap = [
   {
     key: "mail_to",
     label: "Contact Support",
-    value: "mailto:support@plane.so",
+    value: "https://biplane.dev/contact.html",
   },
   {
     key: "status",
     label: "Status Page",
-    value: "https://status.plane.so/",
+    value: "https://github.com/NetverseSocial/biplane/issues",
   },
   {
     key: "twitter_handle",
-    label: "@planepowers",
-    value: "https://x.com/planepowers",
+    label: "GitHub",
+    value: "https://github.com/NetverseSocial/biplane",
   },
 ];
 
@@ -59,8 +59,8 @@ export function ProdErrorComponent({ onGoHome }: ProdErrorComponentProps) {
           <div className="flex flex-col gap-2.5">
             <h1 className="text-left text-18 font-semibold text-primary">&#x1F6A7; Looks like something went wrong!</h1>
             <span className="text-left text-14 font-medium text-secondary">
-              We track these errors automatically and working on getting things back up and running. If the problem
-              persists feel free to contact us. In the meantime, try refreshing.
+              If the problem persists, feel free to contact us with the details below. In the meantime, try
+              refreshing.
             </span>
           </div>
 

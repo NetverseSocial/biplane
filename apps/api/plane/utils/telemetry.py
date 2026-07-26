@@ -18,9 +18,19 @@ from opentelemetry.instrumentation.django import DjangoInstrumentor
 _TRACER_PROVIDER = None
 
 
+def is_telemetry_configured():
+    """Telemetry is opt-in: it runs only when the operator sets OTLP_ENDPOINT."""
+    return bool(os.environ.get("OTLP_ENDPOINT", ""))
+
+
 def init_tracer():
     """Initialize OpenTelemetry with proper shutdown handling"""
     global _TRACER_PROVIDER
+
+    # Fail closed: no exporter, no instrumentation, unless an endpoint was
+    # explicitly configured by the operator (Biplane ships none by default).
+    if not is_telemetry_configured():
+        return None
 
     # If already initialized, return existing provider
     if _TRACER_PROVIDER is not None:
@@ -35,7 +45,7 @@ def init_tracer():
     trace.set_tracer_provider(tracer_provider)
 
     # Configure the OTLP exporter
-    otel_endpoint = os.environ.get("OTLP_ENDPOINT", "https://telemetry.plane.so")
+    otel_endpoint = os.environ.get("OTLP_ENDPOINT")
     otlp_exporter = OTLPSpanExporter(endpoint=otel_endpoint)
     span_processor = BatchSpanProcessor(otlp_exporter)
     tracer_provider.add_span_processor(span_processor)
