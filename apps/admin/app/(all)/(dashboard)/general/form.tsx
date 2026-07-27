@@ -109,16 +109,8 @@ export const GeneralConfigurationForm = observer(function GeneralConfigurationFo
             <div className="grow">
               <div className="text-13 leading-5 font-medium text-primary">Let Biplane collect anonymous usage data</div>
               <div className="text-11 leading-5 font-regular text-tertiary">
-                No PII is collected.This anonymized data is used to understand how you use Plane and build new features
-                in line with{" "}
-                <a
-                  href="https://developers.plane.so/self-hosting/telemetry"
-                  target="_blank"
-                  className="text-accent-primary hover:underline"
-                  rel="noreferrer"
-                >
-                  our Telemetry Policy.
-                </a>
+                Off by default. Even when enabled, nothing leaves your instance unless your deployment explicitly configures an
+                OTLP_ENDPOINT to receive it — Biplane ships none.
               </div>
             </div>
           </div>

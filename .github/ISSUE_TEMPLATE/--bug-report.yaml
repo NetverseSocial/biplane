@@ -1,7 +1,7 @@
 name: Bug report
-description: Create a bug report to help us improve Plane
+description: Create a bug report to help us improve Biplane
 title: "[bug]: "
-labels: [🐛bug, plane]
+labels: [🐛bug, biplane]
 assignees: [vihar, pushya22]
 body:
 - type: markdown

@@ -521,12 +521,12 @@ def workspace_seed(workspace_id: uuid.UUID) -> None:
         # Create a bot user for creating all the workspace data
         bot_user = User.objects.create(
             username=f"bot_user_{workspace.id}",
-            display_name="Plane",
-            first_name="Plane",
+            display_name="Biplane",
+            first_name="Biplane",
             last_name="",
             is_bot=True,
             bot_type=BotTypeEnum.WORKSPACE_SEED,
-            email=f"bot_user_{workspace.id}@plane.so",
+            email=f"bot_user_{workspace.id}@biplane.invalid",
             password=make_password(uuid.uuid4().hex),
             is_password_autoset=True,
         )

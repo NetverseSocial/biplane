@@ -20,13 +20,18 @@ from plane.db.models import (
     Page,
     WorkspaceMember,
 )
-from plane.utils.telemetry import init_tracer, shutdown_tracer
+from plane.utils.telemetry import init_tracer, is_telemetry_configured, shutdown_tracer
 
 
 @shared_task
 def instance_traces():
+    # Fail closed: without an operator-configured OTLP_ENDPOINT there is no
+    # exporter, so never touch the tracer at all (Biplane sets no default).
+    if not is_telemetry_configured():
+        return
     try:
-        init_tracer()
+        if init_tracer() is None:
+            return
         # Check if the instance is registered
         instance = Instance.objects.first()
 

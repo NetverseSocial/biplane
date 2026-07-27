@@ -12,21 +12,20 @@ SPECTACULAR_SETTINGS = {
     # ========================================================================
     # Basic API Information
     # ========================================================================
-    "TITLE": "The Plane REST API",
+    "TITLE": "The Biplane REST API",
     "DESCRIPTION": (
-        "The Plane REST API\n\n"
-        "Visit our quick start guide and full API documentation at "
-        "[developers.plane.so](https://developers.plane.so/api-reference/introduction)."
+        "The Biplane REST API\n\n"
+        "Biplane is a fork of Plane; the API surface follows upstream. "
+        "See [github.com/NetverseSocial/biplane](https://github.com/NetverseSocial/biplane#readme)."
     ),
     "CONTACT": {
-        "name": "Plane",
-        "url": "https://plane.so",
-        "email": "support@plane.so",
+        "name": "Biplane",
+        "url": "https://biplane.dev/contact.html",
     },
     "VERSION": "0.0.1",
     "LICENSE": {
         "name": "GNU AGPLv3",
-        "url": "https://github.com/makeplane/plane/blob/preview/LICENSE.txt",
+        "url": "https://github.com/NetverseSocial/biplane/blob/main/LICENSE.txt",
     },
     # ========================================================================
     # Schema Generation Settings
@@ -45,7 +44,6 @@ SPECTACULAR_SETTINGS = {
     # ========================================================================
     "SERVERS": [
         {"url": "http://localhost:8000", "description": "Local"},
-        {"url": "https://api.plane.so", "description": "Production"},
     ],
     # ========================================================================
     # API Tag Definitions
