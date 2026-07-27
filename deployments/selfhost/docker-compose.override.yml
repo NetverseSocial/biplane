@@ -1,0 +1,18 @@
+# Biplane deltas vs upstream Plane CE compose (docker-compose.yml stays verbatim upstream
+# for easy release syncs). Image names/tags come from .env so nothing is hardcoded to a
+# host or registry; defaults match a local `docker build` of this repo.
+services:
+  web:
+    image: ${BIPLANE_WEB_IMAGE:-biplane-web:latest}
+  space:
+    image: ${BIPLANE_SPACE_IMAGE:-biplane-space:latest}
+  admin:
+    image: ${BIPLANE_ADMIN_IMAGE:-biplane-admin:latest}
+  api:
+    image: ${BIPLANE_BACKEND_IMAGE:-biplane-backend:latest}
+  worker:
+    image: ${BIPLANE_BACKEND_IMAGE:-biplane-backend:latest}
+  beat-worker:
+    image: ${BIPLANE_BACKEND_IMAGE:-biplane-backend:latest}
+  migrator:
+    image: ${BIPLANE_BACKEND_IMAGE:-biplane-backend:latest}
