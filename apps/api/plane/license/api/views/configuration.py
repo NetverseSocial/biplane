@@ -169,3 +169,45 @@ class EmailCredentialCheckEndpoint(BaseAPIView):
                 {"error": "Could not send email. Please check your configuration"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+
+class LLMModelsEndpoint(BaseAPIView):
+    """biplane: list models available at the configured (or provided) OpenAI-compatible
+    endpoint, so the admin picks a real model instead of typing one blind."""
+
+    permission_classes = [InstanceAdminPermission]
+
+    def post(self, request):
+        from openai import OpenAI
+        from plane.license.utils.instance_value import get_configuration_value
+
+        # Prefer values the admin just typed (unsaved); fall back to saved config.
+        api_key = request.data.get("api_key") or None
+        api_base = request.data.get("api_base")
+        if api_base is None or api_key is None:
+            saved_key, saved_base = get_configuration_value(
+                [
+                    {"key": "LLM_API_KEY", "default": None},
+                    {"key": "LLM_API_BASE", "default": ""},
+                ]
+            )
+            if api_key is None:
+                api_key = saved_key
+            if api_base is None:
+                api_base = saved_base
+
+        if not api_key:
+            return Response({"error": "An API key is required to list models."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            client = OpenAI(api_key=api_key, base_url=api_base) if api_base else OpenAI(api_key=api_key)
+            models = sorted({m.id for m in client.models.list().data})
+            return Response({"models": models}, status=status.HTTP_200_OK)
+        except Exception as e:
+            error_type = e.__class__.__name__
+            if error_type == "AuthenticationError":
+                return Response({"error": "Invalid API key for this endpoint."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "Could not list models from this endpoint. Check the Base URL and key."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )

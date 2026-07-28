@@ -6,6 +6,7 @@ from .instance import InstanceEndpoint, SignUpScreenVisitedEndpoint
 
 
 from .configuration import (
+    LLMModelsEndpoint,
     EmailCredentialCheckEndpoint,
     InstanceConfigurationEndpoint,
     DisableEmailFeatureEndpoint,

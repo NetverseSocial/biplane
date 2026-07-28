@@ -4,10 +4,12 @@
  * See the LICENSE file for details.
  */
 
+import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { Lightbulb } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
+import { InstanceService } from "@plane/services";
 import type { IFormattedInstanceConfiguration, TInstanceAIConfigurationKeys } from "@plane/types";
 import { CustomSelect, Input } from "@plane/ui";
 // components
@@ -15,6 +17,8 @@ import type { TControllerInputFormField } from "@/components/common/controller-i
 import { ControllerInput } from "@/components/common/controller-input";
 // hooks
 import { useInstance } from "@/hooks/store";
+
+const instanceService = new InstanceService();
 
 type IInstanceAIForm = {
   config: IFormattedInstanceConfiguration;
@@ -70,16 +74,30 @@ export function InstanceAIForm(props: IInstanceAIForm) {
   const selectedPreset = presetForBase(watch("LLM_API_BASE") || "");
   const isCustom = Boolean(selectedPreset.editable);
 
+  // biplane: models fetched from the endpoint's /models — lets the admin pick a real
+  // model instead of typing one blind. Empty = fall back to the free-text Model field.
+  const [availableModels, setAvailableModels] = useState<string[]>([]);
+  const [loadingModels, setLoadingModels] = useState(false);
+
+  const loadModels = async () => {
+    setLoadingModels(true);
+    try {
+      const models = await instanceService.listLLMModels(watch("LLM_API_BASE") || "", watch("LLM_API_KEY") || "");
+      setAvailableModels(models);
+      if (models.length === 0) {
+        setToast({ type: TOAST_TYPE.INFO, title: "No models", message: "The endpoint returned no models." });
+      } else {
+        setToast({ type: TOAST_TYPE.SUCCESS, title: "Models loaded", message: `${models.length} model(s) available.` });
+      }
+    } catch (err: unknown) {
+      const message = (err as { error?: string })?.error || "Could not load models from this endpoint.";
+      setToast({ type: TOAST_TYPE.ERROR, title: "Error", message });
+    } finally {
+      setLoadingModels(false);
+    }
+  };
+
   const aiFormFields: TControllerInputFormField[] = [
-    {
-      key: "LLM_MODEL",
-      type: "text",
-      label: "LLM Model",
-      description: <>The model name your endpoint expects, e.g. gpt-4o-mini.</>,
-      placeholder: "gpt-4o-mini",
-      error: Boolean(errors.LLM_MODEL),
-      required: false,
-    },
     {
       key: "LLM_API_KEY",
       type: "password",
@@ -164,6 +182,57 @@ export function InstanceAIForm(props: IInstanceAIForm) {
             />
             <span className="text-11 text-tertiary">
               {isCustom ? "Enter your OpenAI-compatible endpoint." : "Set by the selected provider."}
+            </span>
+          </div>
+
+          {/* LLM Model — a dropdown once models are fetched, else free text */}
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center justify-between">
+              <h4 className="text-13 text-tertiary">LLM Model</h4>
+              <button
+                type="button"
+                onClick={loadModels}
+                disabled={loadingModels}
+                className="flex items-center gap-1 text-11 text-accent-primary hover:underline disabled:opacity-60"
+              >
+                <RefreshCw className={`size-3 ${loadingModels ? "animate-spin" : ""}`} />
+                {loadingModels ? "Loading…" : "Load models"}
+              </button>
+            </div>
+            <Controller
+              control={control}
+              name="LLM_MODEL"
+              render={({ field: { value, onChange } }) =>
+                availableModels.length > 0 ? (
+                  <CustomSelect
+                    value={value}
+                    label={value || <span className="text-placeholder">Select a model</span>}
+                    onChange={onChange}
+                    buttonClassName="border-subtle"
+                    input
+                  >
+                    {availableModels.map((m) => (
+                      <CustomSelect.Option key={m} value={m}>
+                        {m}
+                      </CustomSelect.Option>
+                    ))}
+                  </CustomSelect>
+                ) : (
+                  <Input
+                    id="LLM_MODEL"
+                    type="text"
+                    value={value}
+                    onChange={(e) => onChange(e.target.value)}
+                    placeholder="gpt-4o-mini"
+                    className="w-full border border-subtle !bg-surface-1"
+                  />
+                )
+              }
+            />
+            <span className="text-11 text-tertiary">
+              {availableModels.length > 0
+                ? "Pick a model from your endpoint."
+                : "Type a model name, or Load models to pick from your endpoint."}
             </span>
           </div>
 

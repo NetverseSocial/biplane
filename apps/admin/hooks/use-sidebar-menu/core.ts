@@ -40,7 +40,7 @@ export const coreSidebarMenuLinks: Record<TCoreSidebarMenuKey, TSidebarMenuItem>
   ai: {
     Icon: BrainCog,
     name: "Artificial intelligence",
-    description: "Configure your OpenAI creds.",
+    description: "Connect any OpenAI-compatible model provider.",
     href: `/ai/`,
   },
   image: {
