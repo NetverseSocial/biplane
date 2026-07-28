@@ -68,8 +68,8 @@ const InstanceGiteaAuthenticationPage = observer(function InstanceGiteaAuthentic
     <PageWrapper
       customHeader={
         <AuthenticationMethodCard
-          name="Gitea"
-          description="Allow members to login or sign up to plane with their Gitea accounts."
+          name="Forgejo (Gitea-compatible)"
+          description="Allow members to login or sign up to Biplane with their Gitea or Forgejo accounts."
           icon={<img src={giteaLogo} height={24} width={24} alt="Gitea Logo" />}
           config={
             <ToggleSwitch
@@ -100,6 +100,6 @@ const InstanceGiteaAuthenticationPage = observer(function InstanceGiteaAuthentic
     </PageWrapper>
   );
 });
-export const meta: Route.MetaFunction = () => [{ title: "Gitea Authentication - God Mode" }];
+export const meta: Route.MetaFunction = () => [{ title: "Forgejo / Gitea Authentication - Instance admin" }];
 
 export default InstanceGiteaAuthenticationPage;

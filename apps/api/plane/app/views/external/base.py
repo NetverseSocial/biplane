@@ -73,12 +73,12 @@ SUPPORTED_PROVIDERS = {
 }
 
 
-def get_llm_config() -> Tuple[str | None, str | None, str | None]:
+def get_llm_config() -> Tuple[str | None, str | None, str | None, str | None]:
     """
     Helper to get LLM configuration values, returns:
-        - api_key, model, provider
+        - api_key, model, provider, api_base
     """
-    api_key, provider_key, model = get_configuration_value(
+    api_key, provider_key, model, api_base = get_configuration_value(
         [
             {
                 "key": "LLM_API_KEY",
@@ -92,17 +92,33 @@ def get_llm_config() -> Tuple[str | None, str | None, str | None]:
                 "key": "LLM_MODEL",
                 "default": os.environ.get("LLM_MODEL", None),
             },
+            {
+                "key": "LLM_API_BASE",
+                "default": os.environ.get("LLM_API_BASE", ""),
+            },
         ]
     )
+
+    # biplane: a custom base URL means an OpenAI-compatible endpoint (our proxy,
+    # OpenRouter, Azure, a local server, …). In that mode we do NOT constrain the
+    # model to a hardcoded per-provider allowlist — the operator names the model.
+    if api_base:
+        if not api_key:
+            log_exception(ValueError("Missing API key for the configured LLM endpoint"))
+            return None, None, None, None
+        if not model:
+            log_exception(ValueError("Missing model for the configured LLM endpoint"))
+            return None, None, None, None
+        return api_key, model, (provider_key or "custom"), api_base
 
     provider = SUPPORTED_PROVIDERS.get(provider_key.lower())
     if not provider:
         log_exception(ValueError(f"Unsupported provider: {provider_key}"))
-        return None, None, None
+        return None, None, None, None
 
     if not api_key:
         log_exception(ValueError(f"Missing API key for provider: {provider.name}"))
-        return None, None, None
+        return None, None, None, None
 
     # If no model specified, use provider's default
     if not model:
@@ -115,12 +131,14 @@ def get_llm_config() -> Tuple[str | None, str | None, str | None]:
                 f"Model {model} not supported by {provider.name}. Supported models: {', '.join(provider.models)}"
             )
         )
-        return None, None, None
+        return None, None, None, None
 
-    return api_key, model, provider_key
+    return api_key, model, provider_key, None
 
 
-def get_llm_response(task, prompt, api_key: str, model: str, provider: str) -> Tuple[str | None, str | None]:
+def get_llm_response(
+    task, prompt, api_key: str, model: str, provider: str, api_base: str | None = None
+) -> Tuple[str | None, str | None]:
     """Helper to get LLM completion response"""
     final_text = task + "\n" + prompt
     try:
@@ -128,7 +146,8 @@ def get_llm_response(task, prompt, api_key: str, model: str, provider: str) -> T
         if provider.lower() == "gemini":
             model = f"gemini/{model}"
 
-        client = OpenAI(api_key=api_key)
+        # biplane: route to a custom OpenAI-compatible endpoint when configured
+        client = OpenAI(api_key=api_key, base_url=api_base) if api_base else OpenAI(api_key=api_key)
         chat_completion = client.chat.completions.create(
             model=model, messages=[{"role": "user", "content": final_text}]
         )
@@ -148,7 +167,7 @@ def get_llm_response(task, prompt, api_key: str, model: str, provider: str) -> T
 class GPTIntegrationEndpoint(BaseAPIView):
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
     def post(self, request, slug, project_id):
-        api_key, model, provider = get_llm_config()
+        api_key, model, provider, api_base = get_llm_config()
 
         if not api_key or not model or not provider:
             return Response(
@@ -160,7 +179,7 @@ class GPTIntegrationEndpoint(BaseAPIView):
         if not task:
             return Response({"error": "Task is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        text, error = get_llm_response(task, request.data.get("prompt", False), api_key, model, provider)
+        text, error = get_llm_response(task, request.data.get("prompt", False), api_key, model, provider, api_base)
         if not text and error:
             return Response(
                 {"error": "An internal error has occurred."},
@@ -184,7 +203,7 @@ class GPTIntegrationEndpoint(BaseAPIView):
 class WorkspaceGPTIntegrationEndpoint(BaseAPIView):
     @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
     def post(self, request, slug):
-        api_key, model, provider = get_llm_config()
+        api_key, model, provider, api_base = get_llm_config()
 
         if not api_key or not model or not provider:
             return Response(
@@ -196,7 +215,7 @@ class WorkspaceGPTIntegrationEndpoint(BaseAPIView):
         if not task:
             return Response({"error": "Task is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        text, error = get_llm_response(task, request.data.get("prompt", False), api_key, model, provider)
+        text, error = get_llm_response(task, request.data.get("prompt", False), api_key, model, provider, api_base)
         if not text and error:
             return Response(
                 {"error": "An internal error has occurred."},
