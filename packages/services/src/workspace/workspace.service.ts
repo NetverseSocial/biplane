@@ -49,6 +49,26 @@ export class WorkspaceService extends APIService {
   }
 
   /**
+   * biplane: list the workflow templates a new project in this workspace can adopt
+   * (shared system built-ins + this workspace's own).
+   */
+  async workflowTemplates(workspaceSlug: string): Promise<
+    {
+      id: string;
+      name: string;
+      description: string;
+      is_system: boolean;
+      states: { name: string; group: string; color: string; sequence: number; default?: boolean }[];
+    }[]
+  > {
+    return this.get(`/api/workspaces/${workspaceSlug}/workflow-templates/`)
+      .then((response) => response?.data ?? [])
+      .catch((error) => {
+        throw error?.response;
+      });
+  }
+
+  /**
    * Creates a new workspace
    * @param {Partial<IWorkspace>} data - Workspace data for creation
    * @returns {Promise<IWorkspace>} Promise resolving to the created workspace

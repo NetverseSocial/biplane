@@ -21,6 +21,7 @@ from plane.app.views import (
     WorkspaceUserProfileEndpoint,
     WorkspaceUserProfileIssuesEndpoint,
     WorkspaceLabelsEndpoint,
+    WorkspaceWorkflowTemplateEndpoint,
     WorkspaceProjectMemberEndpoint,
     WorkspaceUserPropertiesEndpoint,
     WorkspaceStatesEndpoint,
@@ -158,6 +159,11 @@ urlpatterns = [
         "workspaces/<str:slug>/labels/",
         WorkspaceLabelsEndpoint.as_view(),
         name="workspace-labels",
+    ),
+    path(
+        "workspaces/<str:slug>/workflow-templates/",
+        WorkspaceWorkflowTemplateEndpoint.as_view(),
+        name="workspace-workflow-templates",
     ),
     path(
         "workspaces/<str:slug>/user-properties/",

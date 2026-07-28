@@ -36,6 +36,7 @@ from plane.db.models import (
     ProjectUserProperty,
     State,
     DEFAULT_STATES,
+    WorkflowTemplate,
     Workspace,
     WorkspaceMember,
 )
@@ -273,6 +274,19 @@ class ProjectViewSet(BaseViewSet):
                     role=ROLE.ADMIN.value,
                 )
 
+            # biplane: a new project adopts the states of a chosen workflow template
+            # (falling back to Plane's hardcoded defaults). System templates are shared;
+            # workspace templates belong to this workspace only.
+            template_states = DEFAULT_STATES
+            template_id = request.data.get("workflow_template_id")
+            if template_id:
+                template = WorkflowTemplate.objects.filter(
+                    Q(id=template_id),
+                    Q(is_system=True) | Q(workspace=workspace),
+                ).first()
+                if template and template.states:
+                    template_states = template.states
+
             State.objects.bulk_create(
                 [
                     State(
@@ -285,7 +299,7 @@ class ProjectViewSet(BaseViewSet):
                         default=state.get("default", False),
                         created_by=request.user,
                     )
-                    for state in DEFAULT_STATES
+                    for state in template_states
                 ]
             )
 
