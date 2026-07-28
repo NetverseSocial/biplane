@@ -22,7 +22,7 @@ function GeneralPage() {
       header={{
         title: "General settings",
         description:
-          "Change the name of your instance and instance admin e-mail addresses. Enable or disable telemetry in your instance.",
+          "Change the name of your instance and view your instance admin e-mail and instance ID.",
       }}
     >
       {instance && instanceAdmins && <GeneralConfigurationForm instance={instance} instanceAdmins={instanceAdmins} />}
