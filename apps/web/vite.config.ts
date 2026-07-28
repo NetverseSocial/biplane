@@ -32,7 +32,9 @@ export default defineConfig(() => ({
     dedupe: ["react", "react-dom", "@headlessui/react"],
   },
   server: {
-    host: "127.0.0.1",
+    host: process.env.VITE_DEV_HOST || "127.0.0.1",
+    // biplane: allow remote-dev hostnames (vite 6 blocks unknown Host headers by default)
+    allowedHosts: process.env.VITE_ALLOWED_HOSTS ? process.env.VITE_ALLOWED_HOSTS.split(",") : undefined,
   },
   // No SSR-specific overrides needed; alias resolves to ESM build
 }));
