@@ -6,21 +6,15 @@
 
 import { observer } from "mobx-react";
 import Link from "next/link";
-import { useTheme as useNextTheme } from "next-themes";
 // ui
 import { Button, getButtonStyling } from "@plane/propel/button";
-import { resolveGeneralTheme } from "@plane/utils";
 // hooks
-import TakeoffIconDark from "@/app/assets/logos/takeoff-icon-dark.svg?url";
-import TakeoffIconLight from "@/app/assets/logos/takeoff-icon-light.svg?url";
+import { BiplaneLogo } from "@/components/common/biplane-logo";
 import { useTheme } from "@/hooks/store";
-// icons
 
 export const NewUserPopup = observer(function NewUserPopup() {
   // hooks
   const { isNewUserPopup, toggleNewUserPopup } = useTheme();
-  // theme
-  const { resolvedTheme } = useNextTheme();
 
   if (!isNewUserPopup) return <></>;
   return (
@@ -29,7 +23,7 @@ export const NewUserPopup = observer(function NewUserPopup() {
         <div className="grow">
           <div className="text-14 font-semibold">Create workspace</div>
           <div className="py-2 text-13 font-medium text-tertiary">
-            Instance setup done! Welcome to the Biplane instance portal. Start your journey with by creating your first
+            Instance setup done! Welcome to the Biplane instance portal. Start your journey by creating your first
             workspace.
           </div>
           <div className="flex items-center gap-4 pt-2">
@@ -41,13 +35,8 @@ export const NewUserPopup = observer(function NewUserPopup() {
             </Button>
           </div>
         </div>
-        <div className="flex shrink-0 items-center justify-center">
-          <img
-            src={resolveGeneralTheme(resolvedTheme) === "dark" ? TakeoffIconDark : TakeoffIconLight}
-            height={80}
-            width={80}
-            alt="Biplane icon"
-          />
+        <div className="flex shrink-0 items-center justify-center text-primary">
+          <BiplaneLogo size={72} />
         </div>
       </div>
     </div>

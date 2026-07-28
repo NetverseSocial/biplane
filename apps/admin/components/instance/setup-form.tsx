@@ -102,6 +102,18 @@ export function InstanceSetupForm() {
     if (isTelemetryEnabledParam) setFormData((prev) => ({ ...prev, is_telemetry_enabled: isTelemetryEnabledParam }));
   }, [firstNameParam, lastNameParam, companyParam, emailParam, isTelemetryEnabledParam]);
 
+  // biplane: a weak-password bounce must not make the operator re-type both password
+  // fields — stash on submit (sessionStorage, this tab only), restore once on the
+  // bounce, clear immediately either way.
+  useEffect(() => {
+    const stashed = sessionStorage.getItem("bp_setup_pw");
+    sessionStorage.removeItem("bp_setup_pw");
+    if (stashed && errorMessage === EErrorCodes.PASSWORD_TOO_WEAK) {
+      setFormData((prev) => ({ ...prev, password: stashed, confirm_password: stashed }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // derived values
   const errorData: TError = useMemo(() => {
     if (errorCode && errorMessage) {
@@ -124,7 +136,7 @@ export function InstanceSetupForm() {
         case EErrorCodes.PASSWORD_TOO_WEAK:
           return {
             type: EErrorCodes.PASSWORD_TOO_WEAK,
-            message: `Password looks easy to guess: ${passwordFeedback || "it matches common patterns."} Re-enter it and pick a stronger one, or tick "Use this password anyway".`,
+            message: `Password looks easy to guess: ${passwordFeedback || "it matches common patterns."} Re-enter it and pick a stronger one, or check "Use this password anyway".`,
           };
         default:
           // Unknown codes must still surface — never silently swallow an error again.
@@ -168,7 +180,10 @@ export function InstanceSetupForm() {
             className="space-y-4"
             method="POST"
             action={`${API_BASE_URL}/api/instances/admins/sign-up/`}
-            onSubmit={() => setIsSubmitting(true)}
+            onSubmit={() => {
+              sessionStorage.setItem("bp_setup_pw", formData.password);
+              setIsSubmitting(true);
+            }}
             onError={() => setIsSubmitting(false)}
           >
             <input type="hidden" name="csrfmiddlewaretoken" value={csrfToken} />
