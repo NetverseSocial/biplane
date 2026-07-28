@@ -275,6 +275,10 @@ export const coreRoutes: RouteConfigEntry[] = [
             "./(all)/[workspaceSlug]/(settings)/settings/(workspace)/webhooks/page.tsx"
           ),
           route(
+            ":workspaceSlug/settings/workflow-templates",
+            "./(all)/[workspaceSlug]/(settings)/settings/(workspace)/workflow-templates/page.tsx"
+          ),
+          route(
             ":workspaceSlug/settings/webhooks/:webhookId",
             "./(all)/[workspaceSlug]/(settings)/settings/(workspace)/webhooks/[webhookId]/page.tsx"
           ),

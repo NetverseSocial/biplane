@@ -166,6 +166,11 @@ urlpatterns = [
         name="workspace-workflow-templates",
     ),
     path(
+        "workspaces/<str:slug>/workflow-templates/<uuid:pk>/",
+        WorkspaceWorkflowTemplateEndpoint.as_view(),
+        name="workspace-workflow-template-detail",
+    ),
+    path(
         "workspaces/<str:slug>/user-properties/",
         WorkspaceUserPropertiesEndpoint.as_view(),
         name="workspace-user-filters",

@@ -68,6 +68,30 @@ export class WorkspaceService extends APIService {
       });
   }
 
+  async createWorkflowTemplate(workspaceSlug: string, data: object): Promise<any> {
+    return this.post(`/api/workspaces/${workspaceSlug}/workflow-templates/`, data)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async updateWorkflowTemplate(workspaceSlug: string, id: string, data: object): Promise<any> {
+    return this.patch(`/api/workspaces/${workspaceSlug}/workflow-templates/${id}/`, data)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async deleteWorkflowTemplate(workspaceSlug: string, id: string): Promise<void> {
+    return this.delete(`/api/workspaces/${workspaceSlug}/workflow-templates/${id}/`)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
   /**
    * Creates a new workspace
    * @param {Partial<IWorkspace>} data - Workspace data for creation

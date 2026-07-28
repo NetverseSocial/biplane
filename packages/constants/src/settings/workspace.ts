@@ -56,6 +56,14 @@ export const WORKSPACE_SETTINGS: Record<TWorkspaceSettingsTabs, TWorkspaceSettin
     access: [EUserWorkspaceRoles.ADMIN],
     highlight: (pathname: string, baseUrl: string) => pathname === `${baseUrl}/settings/webhooks/`,
   },
+  // biplane: manage reusable workflow-state templates (Phase 2)
+  "workflow-templates": {
+    key: "workflow-templates",
+    i18n_label: "Workflow templates",
+    href: `/settings/workflow-templates`,
+    access: [EUserWorkspaceRoles.ADMIN, EUserWorkspaceRoles.MEMBER],
+    highlight: (pathname: string, baseUrl: string) => pathname === `${baseUrl}/settings/workflow-templates/`,
+  },
 };
 
 export const WORKSPACE_SETTINGS_ACCESS = Object.fromEntries(
@@ -68,6 +76,6 @@ export const GROUPED_WORKSPACE_SETTINGS: Record<WORKSPACE_SETTINGS_CATEGORY, TWo
     WORKSPACE_SETTINGS["members"],
     WORKSPACE_SETTINGS["export"],
   ],
-  [WORKSPACE_SETTINGS_CATEGORY.FEATURES]: [],
+  [WORKSPACE_SETTINGS_CATEGORY.FEATURES]: [WORKSPACE_SETTINGS["workflow-templates"]],
   [WORKSPACE_SETTINGS_CATEGORY.DEVELOPER]: [WORKSPACE_SETTINGS["webhooks"]],
 };
