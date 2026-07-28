@@ -31,7 +31,7 @@ def base_host(
     if is_admin:
         admin_base_path = getattr(settings, "ADMIN_BASE_PATH", None)
         if not isinstance(admin_base_path, str):
-            admin_base_path = "/god-mode/"
+            admin_base_path = "/admin/"
         if not admin_base_path.startswith("/"):
             admin_base_path = "/" + admin_base_path
         if not admin_base_path.endswith("/"):

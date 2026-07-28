@@ -16,3 +16,8 @@ services:
     image: ${BIPLANE_BACKEND_IMAGE:-biplane-backend:latest}
   migrator:
     image: ${BIPLANE_BACKEND_IMAGE:-biplane-backend:latest}
+  proxy:
+    # biplane: mount our Caddyfile so the admin panel routes at /admin, not /god-mode.
+    # The upstream proxy image is otherwise unchanged.
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro

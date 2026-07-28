@@ -138,7 +138,7 @@ export default {
     "Spot challenges from one project to another and see inter-cycle dependencies that aren't obvious from any other view.",
   analytics: "Analytics",
   workspace_invites: "Workspace invites",
-  enter_god_mode: "Enter god mode",
+  enter_god_mode: "Instance admin",
   workspace_logo: "Workspace logo",
   new_issue: "New work item",
   your_work: "Your work",
