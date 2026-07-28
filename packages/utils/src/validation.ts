@@ -39,7 +39,8 @@ export const DISPLAY_NAME_REGEX = /^[\p{L}\p{N}_.-]+$/u;
  * Use case: International business names like "Société Générale", "株式会社", "Müller GmbH"
  * Blocks: Special punctuation and injection-risk chars
  */
-export const COMPANY_NAME_REGEX = /^[\p{L}\p{N}\s_-]+$/u;
+// biplane: legal company names carry punctuation — "Netverse Social, Inc." must type cleanly.
+export const COMPANY_NAME_REGEX = /^[\p{L}\p{N}\s_\-.,&'()+]+$/u;
 
 /**
  * URL Slug Pattern (for workspace slugs, URL-safe identifiers)
@@ -137,7 +138,7 @@ export const validateCompanyName = (companyName: string, required: boolean = fal
   }
 
   if (!COMPANY_NAME_REGEX.test(companyName)) {
-    return "Company name can only contain letters, numbers, spaces, hyphens, and underscores";
+    return "Company name can only contain letters, numbers, spaces, and common punctuation (. , & ' - _ + parentheses)";
   }
 
   return true;

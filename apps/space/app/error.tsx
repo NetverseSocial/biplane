@@ -20,7 +20,7 @@ function ErrorPage() {
           <p className="mx-auto text-13 text-secondary md:w-1/2">
             That crashed Biplane, pun intended. No worries, though. If you have more
             details, please write to us via{" "}
-            <a href="https://biplane.dev/contact.html" className="text-accent-primary">
+            <a href="https://biplane.dev/contact" className="text-accent-primary">
               our contact form
             </a>{" "}
             or on our{" "}

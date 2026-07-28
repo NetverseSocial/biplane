@@ -9,7 +9,7 @@ export function MaintenanceMessage() {
     {
       key: "mail_to",
       label: "Contact Support",
-      value: "https://biplane.dev/contact.html",
+      value: "https://biplane.dev/contact",
     },
   ];
 

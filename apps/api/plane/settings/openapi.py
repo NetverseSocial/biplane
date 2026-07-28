@@ -20,7 +20,7 @@ SPECTACULAR_SETTINGS = {
     ),
     "CONTACT": {
         "name": "Biplane",
-        "url": "https://biplane.dev/contact.html",
+        "url": "https://biplane.dev/contact",
     },
     "VERSION": "0.0.1",
     "LICENSE": {

@@ -122,7 +122,14 @@ class InstanceAdminSignUpEndpoint(View):
         first_name = request.POST.get("first_name", False)
         last_name = request.POST.get("last_name", "")
         company_name = request.POST.get("company_name", "")
-        is_telemetry_enabled = request.POST.get("is_telemetry_enabled", False)
+        # biplane: parse flags robustly — a raw string ("false"/"False") assigned to a
+        # BooleanField crashes the save AFTER the user exists, stranding a half-created
+        # admin. Any truthy spelling counts; everything else is False.
+        def _to_bool(value):
+            return str(value).strip().lower() in ("1", "true", "t", "yes", "on")
+
+        is_telemetry_enabled = _to_bool(request.POST.get("is_telemetry_enabled", False))
+        accept_weak_password = _to_bool(request.POST.get("accept_weak_password", False))
 
         # return error if the email and password is not present
         if not email or not password or not first_name:
@@ -189,7 +196,14 @@ class InstanceAdminSignUpEndpoint(View):
             return HttpResponseRedirect(url)
         else:
             results = zxcvbn(password)
-            if results["score"] < 3:
+            # biplane: strength is a warning, not a wall (John's call) — the operator can
+            # resubmit with accept_weak_password to proceed anyway. We pass zxcvbn's own
+            # feedback back so the form can say WHY it thinks the password is guessable.
+            if results["score"] < 3 and not accept_weak_password:
+                feedback = results.get("feedback", {}) or {}
+                feedback_text = " ".join(
+                    [feedback.get("warning") or ""] + list(feedback.get("suggestions") or [])
+                ).strip() or "This password looks easy to guess."
                 exc = AuthenticationException(
                     error_code=AUTHENTICATION_ERROR_CODES["PASSWORD_TOO_WEAK"],
                     error_message="PASSWORD_TOO_WEAK",
@@ -199,6 +213,7 @@ class InstanceAdminSignUpEndpoint(View):
                         "last_name": last_name,
                         "company_name": company_name,
                         "is_telemetry_enabled": is_telemetry_enabled,
+                        "password_feedback": feedback_text,
                     },
                 )
                 url = urljoin(
@@ -221,7 +236,9 @@ class InstanceAdminSignUpEndpoint(View):
             user.last_active = timezone.now()
             user.last_login_time = timezone.now()
             user.last_login_ip = get_client_ip(request=request)
-            user.last_login_uagent = request.META.get("HTTP_USER_AGENT")
+            # biplane: default "" — a UA-less client (curl, probes) must not crash the
+            # NOT NULL column and strand a half-created admin
+            user.last_login_uagent = request.META.get("HTTP_USER_AGENT", "") or ""
             user.token_updated_at = timezone.now()
             user.save()
 
@@ -348,7 +365,7 @@ class InstanceAdminSignInEndpoint(View):
         user.last_active = timezone.now()
         user.last_login_time = timezone.now()
         user.last_login_ip = get_client_ip(request=request)
-        user.last_login_uagent = request.META.get("HTTP_USER_AGENT")
+        user.last_login_uagent = request.META.get("HTTP_USER_AGENT", "") or ""
         user.token_updated_at = timezone.now()
         user.save()
 

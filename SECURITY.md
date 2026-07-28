@@ -2,7 +2,7 @@
 This document outlines the security protocols and vulnerability reporting guidelines for the Biplane project. Ensuring the security of our systems is a top priority, and while we work diligently to maintain robust protection, vulnerabilities may still occur. We highly value the community’s role in identifying and reporting security concerns to uphold the integrity of our systems and safeguard our users.
 
 ## Reporting a vulnerability
-If you have identified a security vulnerability, submit your findings to our private [contact form](https://biplane.dev/contact.html).
+If you have identified a security vulnerability, submit your findings to our private [contact form](https://biplane.dev/contact).
 If the vulnerability lives in code Biplane inherits from Plane CE (most of this tree), please also report it upstream to [Plane's security process](https://github.com/makeplane/plane/blob/preview/SECURITY.md) so their users get fixed too.
 Ensure your report includes all relevant information needed for us to reproduce and assess the issue. Include the IP address or URL of the affected system.
 

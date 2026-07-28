@@ -30,6 +30,7 @@ enum EErrorCodes {
   INVALID_EMAIL = "INVALID_EMAIL",
   INVALID_PASSWORD = "INVALID_PASSWORD",
   USER_ALREADY_EXISTS = "USER_ALREADY_EXISTS",
+  PASSWORD_TOO_WEAK = "PASSWORD_TOO_WEAK",
 }
 
 type TError = {
@@ -67,6 +68,7 @@ export function InstanceSetupForm() {
   const isTelemetryEnabledParam = false; // biplane: telemetry hard-off
   const errorCode = searchParams?.get("error_code") || undefined;
   const errorMessage = searchParams?.get("error_message") || undefined;
+  const passwordFeedback = searchParams?.get("password_feedback") || undefined;
   // state
   const [showPassword, setShowPassword] = useState({
     password: false,
@@ -77,6 +79,9 @@ export function InstanceSetupForm() {
   const [isPasswordInputFocused, setIsPasswordInputFocused] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRetryPasswordInputFocused, setIsRetryPasswordInputFocused] = useState(false);
+  // biplane: strength is a warning, not a wall — after a PASSWORD_TOO_WEAK bounce the
+  // operator can opt to proceed with the same password (John's call, 2026-07-27)
+  const [acceptWeakPassword, setAcceptWeakPassword] = useState(false);
 
   const handleShowPassword = (key: keyof typeof showPassword) =>
     setShowPassword((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -100,7 +105,10 @@ export function InstanceSetupForm() {
   // derived values
   const errorData: TError = useMemo(() => {
     if (errorCode && errorMessage) {
-      switch (errorCode) {
+      // biplane: the backend redirects with error_code=<numeric> and error_message=<name>;
+      // this switch previously compared the NUMERIC code against the NAME enum, so no
+      // error ever matched and every failure rendered as a silent blank reload.
+      switch (errorMessage) {
         case EErrorCodes.INSTANCE_NOT_CONFIGURED:
           return { type: EErrorCodes.INSTANCE_NOT_CONFIGURED, message: errorMessage };
         case EErrorCodes.ADMIN_ALREADY_EXIST:
@@ -113,11 +121,17 @@ export function InstanceSetupForm() {
           return { type: EErrorCodes.INVALID_PASSWORD, message: errorMessage };
         case EErrorCodes.USER_ALREADY_EXISTS:
           return { type: EErrorCodes.USER_ALREADY_EXISTS, message: errorMessage };
+        case EErrorCodes.PASSWORD_TOO_WEAK:
+          return {
+            type: EErrorCodes.PASSWORD_TOO_WEAK,
+            message: `Password looks easy to guess: ${passwordFeedback || "it matches common patterns."} Re-enter it and pick a stronger one, or tick "Use this password anyway".`,
+          };
         default:
-          return { type: undefined, message: undefined };
+          // Unknown codes must still surface — never silently swallow an error again.
+          return { type: undefined, message: `${errorMessage.replaceAll("_", " ").toLowerCase()} (${errorCode})` };
       }
     } else return { type: undefined, message: undefined };
-  }, [errorCode, errorMessage]);
+  }, [errorCode, errorMessage, passwordFeedback]);
 
   const isButtonDisabled = useMemo(
     () =>
@@ -145,9 +159,9 @@ export function InstanceSetupForm() {
             heading="Set up your Biplane instance"
             subHeading="Post setup you will be able to manage this Biplane instance."
           />
-          {errorData.type &&
-            errorData?.message &&
-            ![EErrorCodes.INVALID_EMAIL, EErrorCodes.INVALID_PASSWORD].includes(errorData.type) && (
+          {errorData?.message &&
+            (!errorData.type ||
+              ![EErrorCodes.INVALID_EMAIL, EErrorCodes.INVALID_PASSWORD].includes(errorData.type)) && (
               <Banner type="error" message={errorData?.message} />
             )}
           <form
@@ -159,6 +173,7 @@ export function InstanceSetupForm() {
           >
             <input type="hidden" name="csrfmiddlewaretoken" value={csrfToken} />
             <input type="hidden" name="is_telemetry_enabled" value={formData.is_telemetry_enabled ? "True" : "False"} />
+            {acceptWeakPassword && <input type="hidden" name="accept_weak_password" value="True" />}
 
             <div className="flex flex-col items-center gap-4 sm:flex-row">
               <div className="w-full space-y-1">
@@ -340,6 +355,16 @@ export function InstanceSetupForm() {
                   <span className="text-13 text-danger-primary">Passwords don{"'"}t match</span>
                 )}
             </div>
+
+            {errorData.type === EErrorCodes.PASSWORD_TOO_WEAK && (
+              <label className="flex cursor-pointer items-center gap-2 text-13 text-tertiary">
+                <Checkbox
+                  checked={acceptWeakPassword}
+                  onChange={() => setAcceptWeakPassword((prev) => !prev)}
+                />
+                Use this password anyway — I understand it may be easy to guess
+              </label>
+            )}
 
             {/* biplane: telemetry checkbox removed — hard-off, nothing leaves your server */}
 

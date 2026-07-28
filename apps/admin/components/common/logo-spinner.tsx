@@ -4,18 +4,23 @@
  * See the LICENSE file for details.
  */
 
-import { useTheme } from "next-themes";
-import LogoSpinnerDark from "@/app/assets/images/logo-spinner-dark.gif?url";
-import LogoSpinnerLight from "@/app/assets/images/logo-spinner-light.gif?url";
+// biplane: the loading splash shows OUR logo — same climb-and-bob animation as the web
+// app. Inline SVG in currentColor follows the theme; the old Plane gif assets are gone.
+import { BiplaneLogo } from "@/components/common/biplane-logo";
 
 export function LogoSpinner() {
-  const { resolvedTheme } = useTheme();
-
-  const logoSrc = resolvedTheme === "dark" ? LogoSpinnerLight : LogoSpinnerDark;
-
   return (
-    <div className="flex items-center justify-center">
-      <img src={logoSrc} alt="logo" className="h-6 w-auto sm:h-11" />
+    <div className="flex items-center justify-center text-primary" aria-label="Biplane is loading">
+      <style>{`
+        @keyframes bp-climb {
+          0%   { transform: translate(-6px, 5px); opacity: .75; }
+          50%  { transform: translate(0px, -2px); opacity: 1; }
+          100% { transform: translate(6px, 5px); opacity: .75; }
+        }
+      `}</style>
+      <span style={{ display: "inline-block", animation: "bp-climb 1.6s ease-in-out infinite alternate" }}>
+        <BiplaneLogo size={44} />
+      </span>
     </div>
   );
 }

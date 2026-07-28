@@ -14,8 +14,8 @@ interface TermsAndConditionsProps {
 
 // Constants for better maintainability
 const LEGAL_LINKS = {
-  termsOfService: "https://biplane.dev/terms.html",
-  privacyPolicy: "https://biplane.dev/privacy.html",
+  termsOfService: "https://biplane.dev/terms",
+  privacyPolicy: "https://biplane.dev/privacy",
 } as const;
 
 const MESSAGES = {
