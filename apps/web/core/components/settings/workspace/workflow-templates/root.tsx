@@ -9,7 +9,9 @@
 // deleted. A new project adopts the states of whichever template is chosen at creation.
 import { useEffect, useState } from "react";
 import { ArrowDown, ArrowUp, Copy, GitBranchPlus, Plus, Trash2, X } from "lucide-react";
-import { Button, CustomSelect, Input, setToast, TOAST_TYPE } from "@plane/ui";
+import { Button } from "@plane/propel/button";
+import { TOAST_TYPE, setToast } from "@plane/propel/toast";
+import { CustomSelect, Input } from "@plane/ui";
 import { WorkspaceService } from "@plane/services";
 
 const workspaceService = new WorkspaceService();
@@ -194,7 +196,7 @@ export function WorkflowTemplatesRoot({ workspaceSlug }: { workspaceSlug: string
           <Button variant="primary" onClick={save} loading={saving}>
             {saving ? "Saving" : "Save workflow"}
           </Button>
-          <Button variant="neutral-primary" onClick={() => setDraft(null)}>
+          <Button variant="secondary" onClick={() => setDraft(null)}>
             Cancel
           </Button>
         </div>
