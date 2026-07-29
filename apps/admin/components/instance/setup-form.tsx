@@ -151,11 +151,20 @@ export function InstanceSetupForm() {
       formData.first_name &&
       formData.email &&
       formData.password &&
-      getPasswordStrength(formData.password) === E_PASSWORD_STRENGTH.STRENGTH_VALID &&
+      // biplane: the weak-password override must actually unlock the button —
+      // strength gates submission only while the override is unchecked.
+      (acceptWeakPassword || getPasswordStrength(formData.password) === E_PASSWORD_STRENGTH.STRENGTH_VALID) &&
       formData.password === formData.confirm_password
         ? false
         : true,
-    [formData.confirm_password, formData.email, formData.first_name, formData.password, isSubmitting]
+    [
+      acceptWeakPassword,
+      formData.confirm_password,
+      formData.email,
+      formData.first_name,
+      formData.password,
+      isSubmitting,
+    ]
   );
 
   const password = formData?.password ?? "";
@@ -373,10 +382,7 @@ export function InstanceSetupForm() {
 
             {errorData.type === EErrorCodes.PASSWORD_TOO_WEAK && (
               <label className="flex cursor-pointer items-center gap-2 text-13 text-tertiary">
-                <Checkbox
-                  checked={acceptWeakPassword}
-                  onChange={() => setAcceptWeakPassword((prev) => !prev)}
-                />
+                <Checkbox checked={acceptWeakPassword} onChange={() => setAcceptWeakPassword((prev) => !prev)} />
                 Use this password anyway — I understand it may be easy to guess
               </label>
             )}

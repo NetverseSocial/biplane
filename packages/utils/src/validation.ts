@@ -39,8 +39,10 @@ export const DISPLAY_NAME_REGEX = /^[\p{L}\p{N}_.-]+$/u;
  * Use case: International business names like "Société Générale", "株式会社", "Müller GmbH"
  * Blocks: Special punctuation and injection-risk chars
  */
-// biplane: legal company names carry punctuation — "Netverse Social, Inc." must type cleanly.
-export const COMPANY_NAME_REGEX = /^[\p{L}\p{N}\s_\-.,&'()+]+$/u;
+// biplane: legal company names carry punctuation — "Netverse Social, Inc." must type
+// cleanly, and so must "O’Brien & Sons": macOS smart-quotes substitutes the TYPOGRAPHIC
+// apostrophe (’ U+2019), so the straight ' alone is not enough.
+export const COMPANY_NAME_REGEX = /^[\p{L}\p{N}\s_\-.,&'’‘()+]+$/u;
 
 /**
  * URL Slug Pattern (for workspace slugs, URL-safe identifiers)

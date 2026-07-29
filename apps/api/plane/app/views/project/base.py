@@ -7,12 +7,15 @@ import json
 
 
 # Django imports
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.serializers.json import DjangoJSONEncoder
+from django.db import DataError, IntegrityError, transaction
 from django.db.models import Exists, F, OuterRef, Prefetch, Q, Subquery, Count
 from django.utils import timezone
 
 # Third Party imports
 from rest_framework import status
+from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.response import Response
 
 # Module imports
@@ -254,54 +257,72 @@ class ProjectViewSet(BaseViewSet):
     def create(self, request, slug):
         workspace = Workspace.objects.get(slug=slug)
 
-        serializer = ProjectSerializer(data={**request.data}, context={"workspace_id": workspace.id})
-        if serializer.is_valid():
-            serializer.save(timezone=request.data.get("timezone") or request.user.user_timezone)
-
-            # Add the user as Administrator to the project
-            _ = ProjectMember.objects.create(
-                project_id=serializer.data["id"],
-                member=request.user,
-                role=ROLE.ADMIN.value,
-            )
-
-            if serializer.data["project_lead"] is not None and str(serializer.data["project_lead"]) != str(
-                request.user.id
-            ):
-                ProjectMember.objects.create(
-                    project_id=serializer.data["id"],
-                    member_id=serializer.data["project_lead"],
-                    role=ROLE.ADMIN.value,
-                )
-
-            # biplane: a new project adopts the states of a chosen workflow template
-            # (falling back to Plane's hardcoded defaults). System templates are shared;
-            # workspace templates belong to this workspace only.
-            template_states = DEFAULT_STATES
-            template_id = request.data.get("workflow_template_id")
-            if template_id:
+        # biplane: resolve the workflow template BEFORE creating anything, and treat an
+        # unresolvable id as a client error — never fall through to a stateless project.
+        template_states = DEFAULT_STATES
+        template_id = request.data.get("workflow_template_id")
+        if template_id:
+            try:
                 template = WorkflowTemplate.objects.filter(
                     Q(id=template_id),
                     Q(is_system=True) | Q(workspace=workspace),
                 ).first()
-                if template and template.states:
-                    template_states = template.states
+            except (DjangoValidationError, ValueError):
+                return Response(
+                    {"error": "Invalid workflow template."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if template is None or not template.states:
+                return Response(
+                    {"error": "Workflow template not found."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            template_states = template.states
 
-            State.objects.bulk_create(
-                [
-                    State(
-                        name=state["name"],
-                        color=state["color"],
-                        project=serializer.instance,
-                        sequence=state["sequence"],
-                        workspace=serializer.instance.workspace,
-                        group=state["group"],
-                        default=state.get("default", False),
-                        created_by=request.user,
+        serializer = ProjectSerializer(data={**request.data}, context={"workspace_id": workspace.id})
+        if serializer.is_valid():
+            # Project + members + states land together or not at all — a failure while
+            # applying template states must not leave a half-created, stateless project.
+            with transaction.atomic():
+                serializer.save(timezone=request.data.get("timezone") or request.user.user_timezone)
+
+                # Add the user as Administrator to the project
+                _ = ProjectMember.objects.create(
+                    project_id=serializer.data["id"],
+                    member=request.user,
+                    role=ROLE.ADMIN.value,
+                )
+
+                if serializer.data["project_lead"] is not None and str(serializer.data["project_lead"]) != str(
+                    request.user.id
+                ):
+                    ProjectMember.objects.create(
+                        project_id=serializer.data["id"],
+                        member_id=serializer.data["project_lead"],
+                        role=ROLE.ADMIN.value,
                     )
-                    for state in template_states
-                ]
-            )
+
+                try:
+                    State.objects.bulk_create(
+                        [
+                            State(
+                                name=state["name"],
+                                color=state["color"],
+                                project=serializer.instance,
+                                sequence=state["sequence"],
+                                workspace=serializer.instance.workspace,
+                                group=state["group"],
+                                default=state.get("default", False),
+                                created_by=request.user,
+                            )
+                            for state in template_states
+                        ]
+                    )
+                except (IntegrityError, DataError):
+                    # e.g. a legacy template with duplicate or over-long state names —
+                    # raising out of the atomic block rolls the whole project back, and
+                    # DRF's handler turns this into a 400.
+                    raise DRFValidationError({"error": "Workflow template contains invalid states."})
 
             project = self.get_queryset().filter(pk=serializer.data["id"]).first()
 

@@ -71,7 +71,10 @@ export function InstanceAIForm(props: IInstanceAIForm) {
     },
   });
 
-  const selectedPreset = presetForBase(watch("LLM_API_BASE") || "");
+  // biplane: selection is explicit state, seeded from the saved base URL. Deriving it
+  // from the base on every render collapsed "Custom" (base "") straight back to OpenAI.
+  const [presetId, setPresetId] = useState<string>(() => presetForBase(config["LLM_API_BASE"] || "").id);
+  const selectedPreset = PROVIDER_PRESETS.find((p) => p.id === presetId) ?? PROVIDER_PRESETS[0];
   const isCustom = Boolean(selectedPreset.editable);
 
   // biplane: models fetched from the endpoint's /models — lets the admin pick a real
@@ -110,6 +113,16 @@ export function InstanceAIForm(props: IInstanceAIForm) {
   ];
 
   const onSubmit = async (formData: AIFormValues) => {
+    // A custom endpoint with no base URL would silently disable AI server-side —
+    // block the save and say so instead.
+    if (isCustom && !formData.LLM_API_BASE?.trim()) {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Base URL required",
+        message: "Enter the endpoint's base URL, or pick a preset provider.",
+      });
+      return;
+    }
     const payload: Partial<AIFormValues> = { ...formData };
     await updateInstanceConfigurations(payload)
       .then(() =>
@@ -143,9 +156,10 @@ export function InstanceAIForm(props: IInstanceAIForm) {
                 <CustomSelect
                   value={selectedPreset.id}
                   label={selectedPreset.label}
-                  onChange={(presetId: string) => {
-                    const preset = PROVIDER_PRESETS.find((p) => p.id === presetId);
+                  onChange={(nextId: string) => {
+                    const preset = PROVIDER_PRESETS.find((p) => p.id === nextId);
                     if (!preset) return;
+                    setPresetId(preset.id);
                     onChange(preset.provider);
                     setValue("LLM_API_BASE", preset.base);
                   }}

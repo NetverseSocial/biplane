@@ -11,18 +11,36 @@ from django.db.models import Q
 from plane.app.serializers.workflow_template import WorkflowTemplateSerializer
 from plane.app.views.base import BaseAPIView
 from plane.db.models import WorkflowTemplate, Workspace
+from plane.db.models.state import StateGroup
 from plane.app.permissions import WorkspaceViewerPermission, WorkspaceEntityPermission
+
+# State.name is CharField(max_length=255); longer names raise DataError at project creation.
+STATE_NAME_MAX_LENGTH = 255
 
 
 def _validate_states(states):
-    """Every template must cover the required groups so a created project is valid."""
+    """Every template must cover the required groups, use only real groups, and have
+    unique, storable names — so every project created from it is valid (State has a
+    unique (name, project) constraint and a 255-char name column)."""
     required = {"backlog", "unstarted", "started", "completed", "cancelled"}
+    valid_groups = set(StateGroup.values)
     if not isinstance(states, list) or not states:
         return "A workflow needs at least one state."
     groups = set()
+    seen_names = set()
     for s in states:
         if not isinstance(s, dict) or not s.get("name") or not s.get("group"):
             return "Each state needs a name and a group."
+        name = str(s["name"]).strip()
+        if not name:
+            return "Each state needs a name and a group."
+        if len(name) > STATE_NAME_MAX_LENGTH:
+            return f"State name too long (max {STATE_NAME_MAX_LENGTH} characters): {name[:40]}…"
+        if name.casefold() in seen_names:
+            return f"Duplicate state name: {name}."
+        seen_names.add(name.casefold())
+        if s["group"] not in valid_groups:
+            return f"Unknown state group: {s['group']}."
         groups.add(s["group"])
     missing = required - groups
     if missing:
