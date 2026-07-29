@@ -124,6 +124,21 @@ class TestProjectCreateFromWorkflowTemplate:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     @pytest.mark.django_db
+    def test_template_metadata_junk_types_and_overlong_name_are_400(self, session_client, workspace, create_user):
+        """Morrow RC 3016: template name was str()-coerced (dict → literal repr,
+        201) and a >255-char name DataError'd to 500. Both must be clean 400s."""
+        session_client.force_authenticate(user=create_user)
+        url = f"/api/workspaces/{workspace.slug}/workflow-templates/"
+
+        for bad_name in ({"a": 1}, 12345, ["x"]):
+            response = session_client.post(url, {"name": bad_name, "states": BIPLANE_STATES}, format="json")
+            assert response.status_code == status.HTTP_400_BAD_REQUEST, bad_name
+
+        response = session_client.post(url, {"name": "x" * 300, "states": BIPLANE_STATES}, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert WorkflowTemplate.objects.filter(workspace=workspace).count() == 0
+
+    @pytest.mark.django_db
     def test_persisted_junk_typed_template_revalidated_at_use(self, session_client, workspace, create_user):
         """A template with junk-typed states written straight to the DB must 400 at
         project creation via revalidation — cleanly, before any rows are written."""
@@ -138,6 +153,43 @@ class TestProjectCreateFromWorkflowTemplate:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert Project.objects.count() == 0
         assert State.objects.filter(workspace=workspace).count() == 0
+
+    @pytest.mark.django_db
+    def test_legacy_multi_default_template_yields_exactly_one_default(self, session_client, workspace, create_user):
+        """Sable RC 3015: point-of-use must NORMALIZE, not just validate — a legacy
+        template persisted with two default:true states (what the pre-hardening
+        normalize kept) must still produce a project with exactly one default."""
+        session_client.force_authenticate(user=create_user)
+        legacy = [dict(s) for s in BIPLANE_STATES]
+        legacy[1]["default"] = True  # Backlog AND Todo both flagged
+        template = WorkflowTemplate.objects.create(
+            workspace=workspace, name="Legacy Two Defaults", is_system=False, states=legacy
+        )
+
+        response = _post_project(session_client, workspace, workflow_template_id=str(template.id))
+
+        assert response.status_code == status.HTTP_201_CREATED
+        project = Project.objects.get(name="Template Proof")
+        defaults = State.objects.filter(project=project, default=True)
+        assert defaults.count() == 1
+        assert defaults.first().name == "Backlog"
+
+    @pytest.mark.django_db
+    def test_legacy_template_missing_color_key_still_creates(self, session_client, workspace, create_user):
+        """Sable RC 3015 second witness: color is optional to the validator, so a
+        persisted state without a color key must create fine (normalize fills the
+        fallback), not 400 on a raw state["color"] read."""
+        session_client.force_authenticate(user=create_user)
+        legacy = [{k: v for k, v in s.items() if k != "color"} for s in BIPLANE_STATES]
+        template = WorkflowTemplate.objects.create(
+            workspace=workspace, name="Legacy No Colors", is_system=False, states=legacy
+        )
+
+        response = _post_project(session_client, workspace, workflow_template_id=str(template.id))
+
+        assert response.status_code == status.HTTP_201_CREATED
+        project = Project.objects.get(name="Template Proof")
+        assert State.objects.filter(project=project).exclude(color="").count() == len(BIPLANE_STATES)
 
     @pytest.mark.django_db
     def test_no_template_id_still_creates_default_states(self, session_client, workspace, create_user):

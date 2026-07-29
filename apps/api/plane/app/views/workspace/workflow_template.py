@@ -23,6 +23,20 @@ from plane.utils.workflow_template_validation import (  # noqa: F401
     _validate_states,
 )
 
+# WorkflowTemplate.name is CharField(max_length=255).
+TEMPLATE_NAME_MAX_LENGTH = 255
+
+
+def _clean_metadata(name, description):
+    """Template name/description must be strings within column bounds — junk types
+    were being str()-coerced into literal reprs and >255 names DataError'd to 500."""
+    if not isinstance(name, str) or not isinstance(description, str):
+        return "Template name and description must be text.", None, None
+    name = name.strip()
+    if len(name) > TEMPLATE_NAME_MAX_LENGTH:
+        return f"Template name too long (max {TEMPLATE_NAME_MAX_LENGTH} characters).", None, None
+    return None, name, description.strip()
+
 
 class WorkspaceWorkflowTemplateEndpoint(BaseAPIView):
     """biplane: list/create/update/delete workflow templates for a workspace.
@@ -45,10 +59,15 @@ class WorkspaceWorkflowTemplateEndpoint(BaseAPIView):
         err = _validate_states(states)
         if err:
             return Response({"error": err}, status=status.HTTP_400_BAD_REQUEST)
+        meta_err, name, description = _clean_metadata(
+            request.data.get("name", ""), request.data.get("description", "")
+        )
+        if meta_err:
+            return Response({"error": meta_err}, status=status.HTTP_400_BAD_REQUEST)
         template = WorkflowTemplate.objects.create(
             workspace=workspace,
-            name=str(request.data.get("name", "")).strip() or "Untitled workflow",
-            description=str(request.data.get("description", "")).strip(),
+            name=name or "Untitled workflow",
+            description=description,
             is_system=False,
             states=_normalize_states(states),
         )
@@ -66,10 +85,15 @@ class WorkspaceWorkflowTemplateEndpoint(BaseAPIView):
             if err:
                 return Response({"error": err}, status=status.HTTP_400_BAD_REQUEST)
             template.states = _normalize_states(request.data["states"])
+        meta_err, name, description = _clean_metadata(
+            request.data.get("name", ""), request.data.get("description", "")
+        )
+        if meta_err:
+            return Response({"error": meta_err}, status=status.HTTP_400_BAD_REQUEST)
         if "name" in request.data:
-            template.name = str(request.data["name"]).strip() or template.name
+            template.name = name or template.name
         if "description" in request.data:
-            template.description = str(request.data["description"]).strip()
+            template.description = description
         template.save()
         return Response(WorkflowTemplateSerializer(template).data, status=status.HTTP_200_OK)
 

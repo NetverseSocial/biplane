@@ -87,6 +87,11 @@ class TestValidateStates:
         # absent/None color stays fine (normalize fills the fallback)
         assert _validate_states(VALID + [{"name": "X", "group": "started", "color": None}]) is None
 
+    def test_over_long_color_rejected(self):
+        bad = VALID + [{"name": "X", "group": "started", "color": "#" + "f" * 300}]
+        err = _validate_states(bad)
+        assert err is not None and "color" in err.lower()
+
     def test_state_count_cap(self):
         many = VALID + _states(*[(f"S{i}", "started") for i in range(MAX_TEMPLATE_STATES)])
         err = _validate_states(many)

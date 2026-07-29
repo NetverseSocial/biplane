@@ -23,7 +23,8 @@
  * Use case: Accommodates international names like "José", "李明", "محمد", "Müller"
  * Blocks: Injection-risk characters and special symbols
  */
-export const PERSON_NAME_REGEX = /^[\p{L}\s'-]+$/u;
+// Curly quotes included for the same macOS smart-quote substitution as company names.
+export const PERSON_NAME_REGEX = /^[\p{L}\s'’‘-]+$/u;
 
 /**
  * Display Name Pattern (for display_name, usernames)

@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@plane/propel/button";
@@ -81,11 +81,34 @@ export function InstanceAIForm(props: IInstanceAIForm) {
   // model instead of typing one blind. Empty = fall back to the free-text Model field.
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [loadingModels, setLoadingModels] = useState(false);
+  // A list belongs to ONE endpoint identity. The counter invalidates in-flight
+  // responses: switching provider/base bumps it, so a slow response from the old
+  // endpoint can never repopulate the new endpoint's dropdown.
+  const modelsRequestRef = useRef(0);
+
+  const invalidateModels = () => {
+    modelsRequestRef.current += 1;
+    setAvailableModels([]);
+  };
+
+  // The API key is part of the endpoint identity too, but its field renders via the
+  // generic ControllerInput — so watch the value instead of hooking its onChange.
+  const apiKeyValue = watch("LLM_API_KEY");
+  const prevApiKeyRef = useRef(apiKeyValue);
+  useEffect(() => {
+    if (prevApiKeyRef.current !== apiKeyValue) {
+      prevApiKeyRef.current = apiKeyValue;
+      invalidateModels();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apiKeyValue]);
 
   const loadModels = async () => {
+    const requestId = ++modelsRequestRef.current;
     setLoadingModels(true);
     try {
       const models = await instanceService.listLLMModels(watch("LLM_API_BASE") || "", watch("LLM_API_KEY") || "");
+      if (requestId !== modelsRequestRef.current) return; // endpoint changed mid-flight
       setAvailableModels(models);
       if (models.length === 0) {
         setToast({ type: TOAST_TYPE.INFO, title: "No models", message: "The endpoint returned no models." });
@@ -93,10 +116,11 @@ export function InstanceAIForm(props: IInstanceAIForm) {
         setToast({ type: TOAST_TYPE.SUCCESS, title: "Models loaded", message: `${models.length} model(s) available.` });
       }
     } catch (err: unknown) {
+      if (requestId !== modelsRequestRef.current) return;
       const message = (err as { error?: string })?.error || "Could not load models from this endpoint.";
       setToast({ type: TOAST_TYPE.ERROR, title: "Error", message });
     } finally {
-      setLoadingModels(false);
+      if (requestId === modelsRequestRef.current) setLoadingModels(false);
     }
   };
 
@@ -163,8 +187,9 @@ export function InstanceAIForm(props: IInstanceAIForm) {
                     onChange(preset.provider);
                     setValue("LLM_API_BASE", preset.base);
                     // A model list belongs to one endpoint — switching endpoints
-                    // must not leave the previous endpoint's models selectable.
-                    setAvailableModels([]);
+                    // must not leave the previous endpoint's models selectable,
+                    // and must supersede any in-flight fetch.
+                    invalidateModels();
                   }}
                   buttonClassName="border-subtle"
                   input
@@ -190,7 +215,12 @@ export function InstanceAIForm(props: IInstanceAIForm) {
                   id="LLM_API_BASE"
                   type="text"
                   value={value}
-                  onChange={(e) => onChange(e.target.value)}
+                  onChange={(e) => {
+                    onChange(e.target.value);
+                    // Editing the URL changes the endpoint identity — the old list
+                    // (and any fetch still in flight) is no longer valid.
+                    invalidateModels();
+                  }}
                   placeholder="https://api.openai.com/v1"
                   className="w-full border border-subtle !bg-surface-1"
                   disabled={!isCustom}

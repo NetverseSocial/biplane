@@ -51,8 +51,7 @@ export function WorkflowTemplatesRoot({ workspaceSlug }: { workspaceSlug: string
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workspaceSlug]);
 
-  const startNew = () =>
-    setDraft({ id: "", name: "", description: "", is_system: false, states: [blankState()] });
+  const startNew = () => setDraft({ id: "", name: "", description: "", is_system: false, states: [blankState()] });
   const startDuplicate = (t: TTemplate) =>
     setDraft({
       id: "",

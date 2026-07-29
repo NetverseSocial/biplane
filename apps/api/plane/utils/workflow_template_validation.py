@@ -39,6 +39,9 @@ def _validate_states(states):
         color = s.get("color")
         if color is not None and not isinstance(color, str):
             return "State color must be text."
+        # State.color is CharField(max_length=255) — bound it here, not as a DataError.
+        if isinstance(color, str) and len(color) > 255:
+            return "State color value too long."
         name = name.strip()
         if not name or not group:
             return "Each state needs a name and a group."
