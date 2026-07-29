@@ -15,6 +15,8 @@ import { CustomSelect, Input } from "@plane/ui";
 // components
 import type { TControllerInputFormField } from "@/components/common/controller-input";
 import { ControllerInput } from "@/components/common/controller-input";
+// biplane: pure async coordinator for the model list (deterministically tested)
+import { createModelListCoordinator, type TModelListCoordinator } from "@/core/model-list-coordinator";
 // hooks
 import { useInstance } from "@/hooks/store";
 
@@ -79,25 +81,33 @@ export function InstanceAIForm(props: IInstanceAIForm) {
 
   // biplane: models fetched from the endpoint's /models — lets the admin pick a real
   // model instead of typing one blind. Empty = fall back to the free-text Model field.
+  // All race rules (generation, identity, loading ownership) live in the pure
+  // coordinator (core/model-list-coordinator.ts) with a deterministic regression
+  // suite (RC 3019); this component only wires callbacks and calls it.
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [loadingModels, setLoadingModels] = useState(false);
-  // A list belongs to ONE endpoint identity. The counter invalidates in-flight
-  // responses: switching provider/base bumps it, so a slow response from the old
-  // endpoint can never repopulate the new endpoint's dropdown.
-  const modelsRequestRef = useRef(0);
-
-  const invalidateModels = () => {
-    modelsRequestRef.current += 1;
-    setAvailableModels([]);
-    // Invalidation is a CANCEL: the orphaned in-flight request's finally will see
-    // itself superseded and skip clearing the spinner — so clear it here, or the
-    // button stays disabled on "Loading…" forever (Sable RC follow-up).
-    setLoadingModels(false);
-  };
+  const coordinatorRef = useRef<TModelListCoordinator | null>(null);
+  if (coordinatorRef.current === null) {
+    coordinatorRef.current = createModelListCoordinator(
+      (base, key) => instanceService.listLLMModels(base, key),
+      () => ({ base: watch("LLM_API_BASE") || "", key: watch("LLM_API_KEY") || "" }),
+      {
+        setModels: setAvailableModels,
+        setLoading: setLoadingModels,
+        onSuccess: (count) =>
+          setToast({ type: TOAST_TYPE.SUCCESS, title: "Models loaded", message: `${count} model(s) available.` }),
+        onEmpty: () =>
+          setToast({ type: TOAST_TYPE.INFO, title: "No models", message: "The endpoint returned no models." }),
+        onError: (message) => setToast({ type: TOAST_TYPE.ERROR, title: "Error", message }),
+      }
+    );
+  }
+  const invalidateModels = () => coordinatorRef.current!.invalidate();
+  const loadModels = () => coordinatorRef.current!.load();
 
   // The API key is part of the endpoint identity too, but its field renders via the
   // generic ControllerInput — so hook it with RHF's watch SUBSCRIPTION, which runs
-  // synchronously inside the change handler. A passive value-effect runs post-paint
+  // SYNCHRONOUSLY inside the change handler. A passive value-effect runs post-paint
   // and can be reordered after a subsequent Load click, killing the correct request
   // (Sable RC 3018 trace) — the subscription cannot.
   useEffect(() => {
@@ -107,34 +117,6 @@ export function InstanceAIForm(props: IInstanceAIForm) {
     return () => subscription.unsubscribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [watch]);
-
-  const loadModels = async () => {
-    const requestId = ++modelsRequestRef.current;
-    // Capture the endpoint identity this fetch is FOR. The response only commits if
-    // both the generation AND the identity still match — this closes the window
-    // where a change (e.g. api key, whose invalidation runs in a post-commit
-    // effect) hasn't bumped the generation yet when the response lands.
-    const requestBase = watch("LLM_API_BASE") || "";
-    const requestKey = watch("LLM_API_KEY") || "";
-    setLoadingModels(true);
-    try {
-      const models = await instanceService.listLLMModels(requestBase, requestKey);
-      if (requestId !== modelsRequestRef.current) return; // superseded mid-flight
-      if (requestBase !== (watch("LLM_API_BASE") || "") || requestKey !== (watch("LLM_API_KEY") || "")) return;
-      setAvailableModels(models);
-      if (models.length === 0) {
-        setToast({ type: TOAST_TYPE.INFO, title: "No models", message: "The endpoint returned no models." });
-      } else {
-        setToast({ type: TOAST_TYPE.SUCCESS, title: "Models loaded", message: `${models.length} model(s) available.` });
-      }
-    } catch (err: unknown) {
-      if (requestId !== modelsRequestRef.current) return;
-      const message = (err as { error?: string })?.error || "Could not load models from this endpoint.";
-      setToast({ type: TOAST_TYPE.ERROR, title: "Error", message });
-    } finally {
-      if (requestId === modelsRequestRef.current) setLoadingModels(false);
-    }
-  };
 
   const aiFormFields: TControllerInputFormField[] = [
     {
