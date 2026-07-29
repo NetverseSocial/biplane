@@ -42,6 +42,10 @@ def _validate_states(states):
         # State.color is CharField(max_length=255) — bound it here, not as a DataError.
         if isinstance(color, str) and len(color) > 255:
             return "State color value too long."
+        # default must be a real boolean — JSON default:"false" is a truthy string
+        # and would flip the state to default under truthiness normalization.
+        if "default" in s and not isinstance(s["default"], bool):
+            return "State default flag must be true or false."
         name = name.strip()
         if not name or not group:
             return "Each state needs a name and a group."
@@ -68,7 +72,7 @@ def _normalize_states(states):
             "color": s.get("color") or "#60646C",
             "sequence": (i + 1) * 15000,
         }
-        if s.get("default"):
+        if s.get("default") is True:  # strict — a truthy non-bool is NOT a default
             entry["default"] = True
         out.append(entry)
     # guarantee EXACTLY one default: keep the first flagged state, drop the rest;

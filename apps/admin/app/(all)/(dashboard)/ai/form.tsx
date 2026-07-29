@@ -89,6 +89,10 @@ export function InstanceAIForm(props: IInstanceAIForm) {
   const invalidateModels = () => {
     modelsRequestRef.current += 1;
     setAvailableModels([]);
+    // Invalidation is a CANCEL: the orphaned in-flight request's finally will see
+    // itself superseded and skip clearing the spinner — so clear it here, or the
+    // button stays disabled on "Loading…" forever (Sable RC follow-up).
+    setLoadingModels(false);
   };
 
   // The API key is part of the endpoint identity too, but its field renders via the
@@ -105,10 +109,17 @@ export function InstanceAIForm(props: IInstanceAIForm) {
 
   const loadModels = async () => {
     const requestId = ++modelsRequestRef.current;
+    // Capture the endpoint identity this fetch is FOR. The response only commits if
+    // both the generation AND the identity still match — this closes the window
+    // where a change (e.g. api key, whose invalidation runs in a post-commit
+    // effect) hasn't bumped the generation yet when the response lands.
+    const requestBase = watch("LLM_API_BASE") || "";
+    const requestKey = watch("LLM_API_KEY") || "";
     setLoadingModels(true);
     try {
-      const models = await instanceService.listLLMModels(watch("LLM_API_BASE") || "", watch("LLM_API_KEY") || "");
-      if (requestId !== modelsRequestRef.current) return; // endpoint changed mid-flight
+      const models = await instanceService.listLLMModels(requestBase, requestKey);
+      if (requestId !== modelsRequestRef.current) return; // superseded mid-flight
+      if (requestBase !== (watch("LLM_API_BASE") || "") || requestKey !== (watch("LLM_API_KEY") || "")) return;
       setAvailableModels(models);
       if (models.length === 0) {
         setToast({ type: TOAST_TYPE.INFO, title: "No models", message: "The endpoint returned no models." });

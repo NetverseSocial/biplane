@@ -92,6 +92,17 @@ class TestValidateStates:
         err = _validate_states(bad)
         assert err is not None and "color" in err.lower()
 
+    def test_non_bool_default_rejected(self):
+        # Morrow RC 3017: JSON default:"false" is a truthy STRING — truthiness
+        # normalization flipped it to a default. Must be a real boolean or 400.
+        for d in ("false", "true", 1, 0, {"a": 1}):
+            bad = [dict(VALID[0], default=d)] + VALID[1:]
+            err = _validate_states(bad)
+            assert err is not None and "default" in err.lower(), repr(d)
+        # real booleans stay fine
+        assert _validate_states([dict(VALID[0], default=True)] + VALID[1:]) is None
+        assert _validate_states([dict(VALID[0], default=False)] + VALID[1:]) is None
+
     def test_state_count_cap(self):
         many = VALID + _states(*[(f"S{i}", "started") for i in range(MAX_TEMPLATE_STATES)])
         err = _validate_states(many)
@@ -110,6 +121,16 @@ class TestNormalizeStates:
         assert sum(1 for s in out if s.get("default")) == 1
         # first backlog state gets the default
         assert next(s for s in out if s.get("default"))["group"] == "backlog"
+
+    def test_normalize_default_is_strict_boolean(self):
+        # A truthy non-bool that slipped past older validators must NOT become a default.
+        states = [
+            {"name": "Backlog", "group": "backlog"},
+            {"name": "Todo", "group": "unstarted", "default": "false"},
+        ]
+        out = _normalize_states(states)
+        defaults = [s["name"] for s in out if s.get("default")]
+        assert defaults == ["Backlog"]  # fallback default, not the string-flagged one
 
     def test_normalize_collapses_multiple_defaults_to_first(self):
         # Sable round 2: two flagged defaults both survived — now only the first may.
