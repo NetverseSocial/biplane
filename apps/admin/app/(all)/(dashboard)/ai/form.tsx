@@ -96,16 +96,17 @@ export function InstanceAIForm(props: IInstanceAIForm) {
   };
 
   // The API key is part of the endpoint identity too, but its field renders via the
-  // generic ControllerInput — so watch the value instead of hooking its onChange.
-  const apiKeyValue = watch("LLM_API_KEY");
-  const prevApiKeyRef = useRef(apiKeyValue);
+  // generic ControllerInput — so hook it with RHF's watch SUBSCRIPTION, which runs
+  // synchronously inside the change handler. A passive value-effect runs post-paint
+  // and can be reordered after a subsequent Load click, killing the correct request
+  // (Sable RC 3018 trace) — the subscription cannot.
   useEffect(() => {
-    if (prevApiKeyRef.current !== apiKeyValue) {
-      prevApiKeyRef.current = apiKeyValue;
-      invalidateModels();
-    }
+    const subscription = watch((_value, { name }) => {
+      if (name === "LLM_API_KEY") invalidateModels();
+    });
+    return () => subscription.unsubscribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiKeyValue]);
+  }, [watch]);
 
   const loadModels = async () => {
     const requestId = ++modelsRequestRef.current;
