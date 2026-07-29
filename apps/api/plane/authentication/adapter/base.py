@@ -223,7 +223,7 @@ class Adapter:
         user.last_active = timezone.now()
         user.last_login_time = timezone.now()
         user.last_login_ip = get_client_ip(request=self.request)
-        user.last_login_uagent = self.request.META.get("HTTP_USER_AGENT")
+        user.last_login_uagent = self.request.META.get("HTTP_USER_AGENT", "") or ""
         user.token_updated_at = timezone.now()
         # If user is not active, send the activation email and set the user as active
         if not user.is_active:

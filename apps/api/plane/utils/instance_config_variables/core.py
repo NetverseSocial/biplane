@@ -209,6 +209,14 @@ llm_config_variables = [
         "is_encrypted": False,
     },
     {
+        # biplane: base URL for any OpenAI-compatible endpoint (our proxy, Azure,
+        # OpenRouter, a local server, …). Empty = OpenAI's own default endpoint.
+        "key": "LLM_API_BASE",
+        "value": os.environ.get("LLM_API_BASE", ""),
+        "category": "AI",
+        "is_encrypted": False,
+    },
+    {
         "key": "LLM_MODEL",
         "value": os.environ.get("LLM_MODEL", "gpt-4o-mini"),
         "category": "AI",

@@ -376,7 +376,7 @@ CSRF_FAILURE_VIEW = "plane.authentication.views.common.csrf_failure"
 ADMIN_BASE_URL = os.environ.get("ADMIN_BASE_URL", None)
 if ADMIN_BASE_URL and not is_valid_url(ADMIN_BASE_URL):
     ADMIN_BASE_URL = None
-ADMIN_BASE_PATH = os.environ.get("ADMIN_BASE_PATH", "/god-mode/")
+ADMIN_BASE_PATH = os.environ.get("ADMIN_BASE_PATH", "/admin/")
 
 # Space Base URL
 SPACE_BASE_URL = os.environ.get("SPACE_BASE_URL", None)

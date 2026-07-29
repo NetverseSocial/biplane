@@ -46,7 +46,7 @@
       "outputs": ["storybook-static/**"]
     },
     "check": {
-      "dependsOn": ["check:format", "check:lint", "check:types"]
+      "dependsOn": ["check:format", "check:lint", "check:types", "test"]
     },
     "check:format": {
       "inputs": ["$TURBO_DEFAULT$"],

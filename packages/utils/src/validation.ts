@@ -23,7 +23,8 @@
  * Use case: Accommodates international names like "José", "李明", "محمد", "Müller"
  * Blocks: Injection-risk characters and special symbols
  */
-export const PERSON_NAME_REGEX = /^[\p{L}\s'-]+$/u;
+// Curly quotes included for the same macOS smart-quote substitution as company names.
+export const PERSON_NAME_REGEX = /^[\p{L}\s'’‘-]+$/u;
 
 /**
  * Display Name Pattern (for display_name, usernames)
@@ -39,7 +40,10 @@ export const DISPLAY_NAME_REGEX = /^[\p{L}\p{N}_.-]+$/u;
  * Use case: International business names like "Société Générale", "株式会社", "Müller GmbH"
  * Blocks: Special punctuation and injection-risk chars
  */
-export const COMPANY_NAME_REGEX = /^[\p{L}\p{N}\s_-]+$/u;
+// biplane: legal company names carry punctuation — "Netverse Social, Inc." must type
+// cleanly, and so must "O’Brien & Sons": macOS smart-quotes substitutes the TYPOGRAPHIC
+// apostrophe (’ U+2019), so the straight ' alone is not enough.
+export const COMPANY_NAME_REGEX = /^[\p{L}\p{N}\s_\-.,&'’‘()+]+$/u;
 
 /**
  * URL Slug Pattern (for workspace slugs, URL-safe identifiers)
@@ -72,10 +76,9 @@ export const validatePersonName = (name: string): boolean | string => {
     return "Name must be 50 characters or less";
   }
 
-  if (hasInjectionRiskChars(name)) {
-    return "Names cannot contain special characters like < > ' \" { } [ ] * ^ ! # %";
-  }
-
+  // biplane: no hasInjectionRiskChars gate — it bans the apostrophe this
+  // validator's own docstring promises to accept ("O'Brien"). The allowlist
+  // regex already excludes every injection-risk character except ' ’ ‘.
   if (!PERSON_NAME_REGEX.test(name)) {
     return "Names can only contain letters, spaces, hyphens, and apostrophes";
   }
@@ -132,12 +135,12 @@ export const validateCompanyName = (companyName: string, required: boolean = fal
     return "Company name must be 80 characters or less";
   }
 
-  if (hasInjectionRiskChars(companyName)) {
-    return "Company name cannot contain special characters like < > ' \" { } [ ] * ^ ! # %";
-  }
-
+  // biplane: no hasInjectionRiskChars gate here — its denylist bans the straight
+  // apostrophe that COMPANY_NAME_REGEX deliberately allows (it rejected "O'Brien"
+  // before the regex was ever consulted). The regex is a strict allowlist and
+  // already excludes every injection-risk character except the quotes we permit.
   if (!COMPANY_NAME_REGEX.test(companyName)) {
-    return "Company name can only contain letters, numbers, spaces, hyphens, and underscores";
+    return "Company name can only contain letters, numbers, spaces, and common punctuation (. , & ' - _ + parentheses)";
   }
 
   return true;

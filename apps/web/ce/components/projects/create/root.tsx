@@ -22,6 +22,7 @@ import { usePlatformOS } from "@/hooks/use-platform-os";
 // plane web types
 import type { TProject } from "@/plane-web/types/projects";
 import { ProjectAttributes } from "./attributes";
+import { WorkflowTemplateSelect } from "./workflow-template-select";
 import { getProjectFormValues } from "./utils";
 
 export type TCreateProjectFormProps = {
@@ -175,7 +176,10 @@ export const CreateProjectForm = observer(function CreateProjectForm(props: TCre
             shouldAutoSyncIdentifier={shouldAutoSyncIdentifier}
             setShouldAutoSyncIdentifier={setShouldAutoSyncIdentifier}
           />
-          <ProjectAttributes isMobile={isMobile} />
+          <div className="flex flex-wrap items-center gap-2">
+            <ProjectAttributes isMobile={isMobile} />
+            <WorkflowTemplateSelect workspaceSlug={workspaceSlug?.toString()} />
+          </div>
         </div>
         <ProjectCreateButtons handleClose={handleClose} />
       </form>

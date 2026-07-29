@@ -6,12 +6,11 @@
 
 import { observer } from "mobx-react";
 import { Controller, useForm } from "react-hook-form";
-import { Telescope } from "lucide-react";
 // plane imports
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { IInstance, IInstanceAdmin } from "@plane/types";
-import { Input, ToggleSwitch } from "@plane/ui";
+import { Input } from "@plane/ui";
 // components
 import { ControllerInput } from "@/components/common/controller-input";
 // hooks
@@ -35,7 +34,6 @@ export const GeneralConfigurationForm = observer(function GeneralConfigurationFo
   } = useForm<Partial<IInstance>>({
     defaultValues: {
       instance_name: instance?.instance_name,
-      is_telemetry_enabled: instance?.is_telemetry_enabled,
     },
   });
 
@@ -97,34 +95,8 @@ export const GeneralConfigurationForm = observer(function GeneralConfigurationFo
         </div>
       </div>
 
-      <div className="space-y-6">
-        <div className="border-b border-subtle pb-1.5 text-16 font-medium text-primary">Telemetry</div>
-        <div className="flex items-center gap-14">
-          <div className="flex grow items-center gap-4">
-            <div className="shrink-0">
-              <div className="flex size-11 items-center justify-center rounded-lg bg-layer-1">
-                <Telescope className="size-5 text-tertiary" />
-              </div>
-            </div>
-            <div className="grow">
-              <div className="text-13 leading-5 font-medium text-primary">Let Biplane collect anonymous usage data</div>
-              <div className="text-11 leading-5 font-regular text-tertiary">
-                Off by default. Even when enabled, nothing leaves your instance unless your deployment explicitly configures an
-                OTLP_ENDPOINT to receive it — Biplane ships none.
-              </div>
-            </div>
-          </div>
-          <div className={`shrink-0 ${isSubmitting && "opacity-70"}`}>
-            <Controller
-              control={control}
-              name="is_telemetry_enabled"
-              render={({ field: { value, onChange } }) => (
-                <ToggleSwitch value={value ?? false} onChange={onChange} size="sm" disabled={isSubmitting} />
-              )}
-            />
-          </div>
-        </div>
-      </div>
+      {/* biplane: telemetry section removed entirely — Biplane sends nothing (hard-off in
+          code), so a toggle here was dead UI that also contradicted our own privacy terms */}
 
       <div>
         <Button

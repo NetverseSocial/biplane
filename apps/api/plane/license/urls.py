@@ -6,6 +6,7 @@ from django.urls import path
 
 from plane.license.api.views import (
     EmailCredentialCheckEndpoint,
+    LLMModelsEndpoint,
     InstanceAdminEndpoint,
     InstanceAdminSignInEndpoint,
     InstanceAdminSignUpEndpoint,
@@ -64,6 +65,11 @@ urlpatterns = [
         "email-credentials-check/",
         EmailCredentialCheckEndpoint.as_view(),
         name="email-credential-check",
+    ),
+    path(
+        "llm-models/",
+        LLMModelsEndpoint.as_view(),
+        name="llm-models",
     ),
     path(
         "workspace-slug-check/",

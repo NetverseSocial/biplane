@@ -130,6 +130,23 @@ export class InstanceService extends APIService {
   }
 
   /**
+   * biplane: list models available at an OpenAI-compatible endpoint.
+   * Pass the base URL + key the admin just typed (unsaved), or omit to use saved config.
+   * @returns {Promise<string[]>} available model ids
+   * @throws {Error} If the API request fails
+   */
+  async listLLMModels(apiBase?: string, apiKey?: string): Promise<string[]> {
+    return this.post("/api/instances/llm-models/", {
+      ...(apiBase !== undefined ? { api_base: apiBase } : {}),
+      ...(apiKey ? { api_key: apiKey } : {}),
+    })
+      .then((response) => response?.data?.models ?? [])
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  /**
    * Disables the email configuration
    * @returns {Promise<void>} Promise resolving to void
    * @throws {Error} If the API request fails

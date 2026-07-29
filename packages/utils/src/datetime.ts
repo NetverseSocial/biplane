@@ -94,7 +94,10 @@ export const setDefaultTimeFormat = (f: "12-hour" | "24-hour") => {
     /* ssr */
   }
 };
-export const renderFormattedTime = (date: string | Date, timeFormat: "12-hour" | "24-hour" = __defaultTimeFormat): string => {
+export const renderFormattedTime = (
+  date: string | Date,
+  timeFormat: "12-hour" | "24-hour" = __defaultTimeFormat
+): string => {
   // Parse the date to check if it is valid
   const parsedDate = new Date(date);
   // return if undefined
@@ -298,7 +301,20 @@ export const getDate = (date: string | Date | undefined | null): Date | undefine
 
     if (typeof date !== "string" && !(date instanceof String)) return date;
 
-    const [yearString, monthString, dayString] = date.substring(0, 10).split("-");
+    const dateString = date as string;
+
+    // biplane: a FULL timestamp (has a time component) must parse WITH its timezone so
+    // it renders in the viewer's local zone. Slicing the first 10 chars — as the bare-date
+    // path below does — would show the UTC calendar date, off by a day for anyone west of
+    // UTC after ~17:00 local (e.g. "created just now" showing tomorrow's date in PT).
+    if (dateString.includes("T") || dateString.includes(" ")) {
+      const parsed = new Date(dateString);
+      return isNaN(parsed.getTime()) ? undefined : parsed;
+    }
+
+    // Bare date ("YYYY-MM-DD", e.g. a due date): keep it calendar-literal so it does NOT
+    // shift a day from a UTC-midnight conversion.
+    const [yearString, monthString, dayString] = dateString.substring(0, 10).split("-");
     const year = parseInt(yearString);
     const month = parseInt(monthString);
     const day = parseInt(dayString);
