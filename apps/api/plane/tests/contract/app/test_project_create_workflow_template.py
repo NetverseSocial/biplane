@@ -111,6 +111,35 @@ class TestProjectCreateFromWorkflowTemplate:
         assert Project.objects.count() == 0
 
     @pytest.mark.django_db
+    def test_unhashable_group_in_template_endpoint_is_400_not_500(self, session_client, workspace, create_user):
+        """Round 2 (Morrow via Sable): a dict where group belongs raised TypeError →
+        500 through the real view. Must be a clean 400."""
+        session_client.force_authenticate(user=create_user)
+        bad = BIPLANE_STATES + [{"name": "X", "group": {"a": 1}}]
+        response = session_client.post(
+            f"/api/workspaces/{workspace.slug}/workflow-templates/",
+            {"name": "Junk", "states": bad},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    @pytest.mark.django_db
+    def test_persisted_junk_typed_template_revalidated_at_use(self, session_client, workspace, create_user):
+        """A template with junk-typed states written straight to the DB must 400 at
+        project creation via revalidation — cleanly, before any rows are written."""
+        session_client.force_authenticate(user=create_user)
+        bad_states = BIPLANE_STATES + [{"name": 123, "group": {"a": 1}}]
+        template = WorkflowTemplate.objects.create(
+            workspace=workspace, name="Junk Types", is_system=False, states=bad_states
+        )
+
+        response = _post_project(session_client, workspace, workflow_template_id=str(template.id))
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert Project.objects.count() == 0
+        assert State.objects.filter(workspace=workspace).count() == 0
+
+    @pytest.mark.django_db
     def test_no_template_id_still_creates_default_states(self, session_client, workspace, create_user):
         """The OSS default path is untouched: no template id → stock Plane states."""
         session_client.force_authenticate(user=create_user)

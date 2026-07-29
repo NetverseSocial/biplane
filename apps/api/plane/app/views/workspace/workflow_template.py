@@ -11,60 +11,17 @@ from django.db.models import Q
 from plane.app.serializers.workflow_template import WorkflowTemplateSerializer
 from plane.app.views.base import BaseAPIView
 from plane.db.models import WorkflowTemplate, Workspace
-from plane.db.models.state import StateGroup
 from plane.app.permissions import WorkspaceViewerPermission, WorkspaceEntityPermission
 
-# State.name is CharField(max_length=255); longer names raise DataError at project creation.
-STATE_NAME_MAX_LENGTH = 255
-
-
-def _validate_states(states):
-    """Every template must cover the required groups, use only real groups, and have
-    unique, storable names — so every project created from it is valid (State has a
-    unique (name, project) constraint and a 255-char name column)."""
-    required = {"backlog", "unstarted", "started", "completed", "cancelled"}
-    valid_groups = set(StateGroup.values)
-    if not isinstance(states, list) or not states:
-        return "A workflow needs at least one state."
-    groups = set()
-    seen_names = set()
-    for s in states:
-        if not isinstance(s, dict) or not s.get("name") or not s.get("group"):
-            return "Each state needs a name and a group."
-        name = str(s["name"]).strip()
-        if not name:
-            return "Each state needs a name and a group."
-        if len(name) > STATE_NAME_MAX_LENGTH:
-            return f"State name too long (max {STATE_NAME_MAX_LENGTH} characters): {name[:40]}…"
-        if name.casefold() in seen_names:
-            return f"Duplicate state name: {name}."
-        seen_names.add(name.casefold())
-        if s["group"] not in valid_groups:
-            return f"Unknown state group: {s['group']}."
-        groups.add(s["group"])
-    missing = required - groups
-    if missing:
-        return f"Missing a state for: {', '.join(sorted(missing))}."
-    return None
-
-
-def _normalize_states(states):
-    out = []
-    for i, s in enumerate(states):
-        entry = {
-            "name": str(s["name"]).strip(),
-            "group": s["group"],
-            "color": s.get("color") or "#60646C",
-            "sequence": (i + 1) * 15000,
-        }
-        if s.get("default"):
-            entry["default"] = True
-        out.append(entry)
-    # guarantee exactly one default (first backlog, else first)
-    if not any(e.get("default") for e in out):
-        backlog = next((e for e in out if e["group"] == "backlog"), out[0])
-        backlog["default"] = True
-    return out
+# Validation lives in plane.utils so project creation can revalidate persisted
+# templates at point of use without a view-to-view import. Re-exported here for
+# existing importers/tests.
+from plane.utils.workflow_template_validation import (  # noqa: F401
+    MAX_TEMPLATE_STATES,
+    STATE_NAME_MAX_LENGTH,
+    _normalize_states,
+    _validate_states,
+)
 
 
 class WorkspaceWorkflowTemplateEndpoint(BaseAPIView):

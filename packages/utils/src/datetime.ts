@@ -94,7 +94,10 @@ export const setDefaultTimeFormat = (f: "12-hour" | "24-hour") => {
     /* ssr */
   }
 };
-export const renderFormattedTime = (date: string | Date, timeFormat: "12-hour" | "24-hour" = __defaultTimeFormat): string => {
+export const renderFormattedTime = (
+  date: string | Date,
+  timeFormat: "12-hour" | "24-hour" = __defaultTimeFormat
+): string => {
   // Parse the date to check if it is valid
   const parsedDate = new Date(date);
   // return if undefined

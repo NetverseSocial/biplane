@@ -45,6 +45,7 @@ from plane.db.models import (
 )
 from plane.db.models.intake import IntakeIssueStatus
 from plane.utils.host import base_host
+from plane.utils.workflow_template_validation import _validate_states
 
 
 class ProjectViewSet(BaseViewSet):
@@ -275,6 +276,15 @@ class ProjectViewSet(BaseViewSet):
             if template is None or not template.states:
                 return Response(
                     {"error": "Workflow template not found."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            # Re-validate at point of use: templates written before the validator
+            # hardened (or edited out-of-band) must fail here as a clean 400, not
+            # rely solely on the atomic rollback below.
+            template_err = _validate_states(template.states)
+            if template_err:
+                return Response(
+                    {"error": f"Workflow template contains invalid states: {template_err}"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             template_states = template.states

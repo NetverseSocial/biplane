@@ -162,6 +162,9 @@ export function InstanceAIForm(props: IInstanceAIForm) {
                     setPresetId(preset.id);
                     onChange(preset.provider);
                     setValue("LLM_API_BASE", preset.base);
+                    // A model list belongs to one endpoint — switching endpoints
+                    // must not leave the previous endpoint's models selectable.
+                    setAvailableModels([]);
                   }}
                   buttonClassName="border-subtle"
                   input

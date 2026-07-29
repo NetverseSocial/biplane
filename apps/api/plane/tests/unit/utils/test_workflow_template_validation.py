@@ -4,7 +4,8 @@
 
 import pytest
 
-from plane.app.views.workspace.workflow_template import (
+from plane.utils.workflow_template_validation import (
+    MAX_TEMPLATE_STATES,
     STATE_NAME_MAX_LENGTH,
     _normalize_states,
     _validate_states,
@@ -65,6 +66,32 @@ class TestValidateStates:
     def test_triage_is_a_valid_group(self):
         assert _validate_states(VALID + _states(("Triage", "triage"))) is None
 
+    # -- type-canonical cases (Sable/Morrow round 2: junk types must be clean
+    # errors, never a TypeError 500) --
+
+    def test_unhashable_group_is_clean_error_not_typeerror(self):
+        bad = VALID + [{"name": "X", "group": {"a": 1}}]
+        assert isinstance(_validate_states(bad), str)
+
+    def test_non_string_group_scalars_rejected(self):
+        for g in (7, True, None, ["started"]):
+            assert isinstance(_validate_states(VALID + [{"name": "X", "group": g}]), str)
+
+    def test_non_string_name_rejected(self):
+        for n in ({"a": 1}, 123, None, ["Todo"]):
+            assert isinstance(_validate_states(VALID + [{"name": n, "group": "started"}]), str)
+
+    def test_non_string_color_rejected(self):
+        bad = VALID + [{"name": "X", "group": "started", "color": {"x": 1}}]
+        assert isinstance(_validate_states(bad), str)
+        # absent/None color stays fine (normalize fills the fallback)
+        assert _validate_states(VALID + [{"name": "X", "group": "started", "color": None}]) is None
+
+    def test_state_count_cap(self):
+        many = VALID + _states(*[(f"S{i}", "started") for i in range(MAX_TEMPLATE_STATES)])
+        err = _validate_states(many)
+        assert err is not None and "Too many" in err
+
 
 @pytest.mark.unit
 class TestNormalizeStates:
@@ -78,3 +105,14 @@ class TestNormalizeStates:
         assert sum(1 for s in out if s.get("default")) == 1
         # first backlog state gets the default
         assert next(s for s in out if s.get("default"))["group"] == "backlog"
+
+    def test_normalize_collapses_multiple_defaults_to_first(self):
+        # Sable round 2: two flagged defaults both survived — now only the first may.
+        states = [
+            {"name": "Backlog", "group": "backlog", "default": True},
+            {"name": "Todo", "group": "unstarted", "default": True},
+            {"name": "Done", "group": "completed", "default": True},
+        ]
+        out = _normalize_states(states)
+        defaults = [s["name"] for s in out if s.get("default")]
+        assert defaults == ["Backlog"]
