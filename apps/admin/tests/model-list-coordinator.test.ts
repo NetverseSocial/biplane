@@ -193,6 +193,20 @@ describe("model-list coordinator (RC 3019 async regression)", () => {
     expect(h.state.loading).toBe(false);
   });
 
+  it("identity drift REJECTION is exactly as silent as drifted success (I2 symmetry)", async () => {
+    // Morrow RC 3023: currentness must be one predicate for both outcomes — an
+    // asymmetric catch would toast endpoint A's error into endpoint B's UI.
+    const h = harness();
+    const loadA = h.coordinator.load();
+    h.setIdentity(B_IDENTITY); // drift, no invalidate
+    h.fetches[0].d.reject({ error: "A exploded" });
+    await loadA;
+    // KILL: a catch that checks only the generation emits error:A exploded here.
+    expect(h.state.events.filter((e) => e.startsWith("error:"))).toEqual([]);
+    // Loading ownership stays generation-only: the newest request releases it.
+    expect(h.state.loading).toBe(false);
+  });
+
   it("empty and error results surface only for the current request", async () => {
     const h = harness();
     const load1 = h.coordinator.load();

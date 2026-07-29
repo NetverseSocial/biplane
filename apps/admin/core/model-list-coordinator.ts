@@ -15,8 +15,12 @@
 //      the loading flag — an orphaned request must never leave the control stuck.
 //  I2. A response commits only if it is the newest request (generation) AND the
 //      endpoint identity it was fetched for still matches the current identity.
-//  I3. A superseded request must not mutate ANYTHING: no models, no toasts, no
-//      loading changes (the newer request owns the flag).
+//  I3. A superseded request must not commit models or toasts. Loading OWNERSHIP
+//      is the deliberate carve-out: it is GENERATION-only — the newest request
+//      always releases the flag in its finally, even if identity drifted with no
+//      successor request, because nothing else would release it. Do NOT "unify"
+//      the finally onto the full currentness predicate: that reintroduces the
+//      stuck-spinner wedge (RC 3018) via the RC 3023 fix.
 //  I4. invalidate-then-load (the synchronous subscription ordering) must leave
 //      the new load fully functional and committable.
 
@@ -56,20 +60,27 @@ export function createModelListCoordinator(
     // generation: every identity-changing input invalidates synchronously, and
     // this guard also covers any path where identity changes without one.
     const { base, key } = getIdentity();
+    // Currentness is ONE predicate for success and failure alike (I2) — a stale
+    // rejection must be exactly as silent as a stale success; an asymmetric catch
+    // would toast endpoint A's error into endpoint B's UI.
+    const isCurrent = () => {
+      if (requestId !== generation) return false; // superseded (I3)
+      const now = getIdentity();
+      return base === now.base && key === now.key; // identity moved (I2)
+    };
     cb.setLoading(true);
     try {
       const models = await fetchModels(base, key);
-      if (requestId !== generation) return; // superseded (I3)
-      const now = getIdentity();
-      if (base !== now.base || key !== now.key) return; // identity moved (I2)
+      if (!isCurrent()) return;
       cb.setModels(models);
       if (models.length === 0) cb.onEmpty();
       else cb.onSuccess(models.length);
     } catch (err: unknown) {
-      if (requestId !== generation) return; // superseded failures stay silent (I3)
+      if (!isCurrent()) return;
       cb.onError((err as { error?: string })?.error || "Could not load models from this endpoint.");
     } finally {
-      // Only the newest request owns the loading flag (I3).
+      // Loading OWNERSHIP is generation-only (I3): the newest request must always
+      // release the flag, even if identity drifted — nothing else will.
       if (requestId === generation) cb.setLoading(false);
     }
   };
