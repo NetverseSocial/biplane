@@ -113,3 +113,36 @@ describe("onboarding cannot advance past a failed submit (RC 3036)", () => {
     expect(source).toContain("return true; } catch");
   });
 });
+
+describe("the override is VISIBLE when it must be (Morrow re-gate on c247468: visibility reversion)", () => {
+  // Morrow's false-green mutant: the render gate reverts to server-verdict-only,
+  // restoring the exact defect the browser walk found — the checkbox invisible for
+  // a typed-weak password until the server has already rejected once.
+  it("onboarding child renders the checkbox for server verdict OR child-local typed weakness", () => {
+    expect(flat(PATHS.onboardingChild)).toContain(
+      "{(showWeakPasswordOverride || isTypedPasswordWeak) && onAcceptWeakPasswordChange && ("
+    );
+  });
+
+  // Typed weakness must derive from state the child actually OWNS — the parent's
+  // watch("password") was the original permanently-false gate (field never registered).
+  it("typed weakness derives from the child's own passwordState", () => {
+    expect(flat(PATHS.onboardingChild)).toContain(
+      "passwordState.password.length > 0 && getPasswordStrength(passwordState.password) !== E_PASSWORD_STRENGTH.STRENGTH_VALID"
+    );
+  });
+
+  // John (prod walk, 7/30): a control the user must act on can never sit inside a
+  // collapsed section. The fields render expanded by default (consistent with the
+  // sign-up door)…
+  it("password section renders expanded by default", () => {
+    expect(flat(PATHS.onboardingChild)).toContain("const [isExpanded, setIsExpanded] = useState(true)");
+  });
+
+  // …and a server rejection force-opens the section even if the user collapsed it.
+  it("server rejection force-opens the section", () => {
+    expect(flat(PATHS.onboardingChild)).toContain(
+      "useEffect(() => { if (showWeakPasswordOverride) setIsExpanded(true); }, [showWeakPasswordOverride])"
+    );
+  });
+});
