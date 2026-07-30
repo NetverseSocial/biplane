@@ -25,7 +25,7 @@ import icon512 from "@/app/assets/icons/icon-512x512.png?url";
 import { AppProvider } from "./provider";
 
 export const meta = () => [
-  { title: "Biplane — built on Biplane. We added a wing." },
+  { title: "Biplane — built on Plane. We added a wing." },
   { name: "description", content: SITE_DESCRIPTION },
   {
     name: "keywords",

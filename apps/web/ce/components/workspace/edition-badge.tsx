@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 
+import { BIPLANE_VERSION } from "@plane/constants";
 import { useState } from "react";
 import { observer } from "mobx-react";
 // ui
@@ -30,7 +31,7 @@ export const WorkspaceEditionBadge = observer(function WorkspaceEditionBadge() {
   return (
     <>
       <BiplaneAboutModal isOpen={isAboutOpen} onClose={() => setIsAboutOpen(false)} />
-      <Tooltip tooltipContent={`biplane · built on Biplane v${packageJson.version}`} isMobile={isMobile}>
+      <Tooltip tooltipContent={`Biplane v${BIPLANE_VERSION} · built on Plane v${packageJson.version}`} isMobile={isMobile}>
         <Button
           variant="tertiary"
           size="lg"
