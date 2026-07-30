@@ -44,11 +44,11 @@ export function SetPasswordRoot({
     confirmPassword: "",
   });
 
-  // biplane: the override checkbox visibility is decided HERE because this
-  // component owns the typed value. The parent previously gated it on
-  // watch("password") — a field the child never registers — so the control never
-  // rendered at all. Caught by an executable browser walk; invisible to source
-  // assertions.
+  // biplane: typed-weak visibility is decided HERE because this component owns the
+  // typed value; the parent's prop carries only the server's verdict. (Sable RC 3041:
+  // an earlier version of this comment asserted the old parent-side gate could never
+  // render — a mechanism the cited walk did not test. What's established is the
+  // ownership rule above and the executable conduction proof on PR #6, comment 9649.)
   const isTypedPasswordWeak = useMemo(
     () =>
       passwordState.password.length > 0 &&
