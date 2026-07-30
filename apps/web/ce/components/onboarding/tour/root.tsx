@@ -96,9 +96,10 @@ export const TourRoot = observer(function TourRoot(props: TOnboardingTourProps) 
         <div className="w-4/5 overflow-hidden rounded-[10px] bg-surface-1 md:w-1/2 lg:w-2/5">
           <div className="h-full overflow-hidden">
             <div className="grid h-64 place-items-center bg-accent-primary">
-              {/* biplane: the lockup must OWN the banner — h-10 was a postage stamp in a
-      250px blue field (John, on prod). */}
-              <PlaneLockup className="h-24 w-auto text-on-color" />
+              {/* biplane: the lockup must OWN the banner (John, on prod). This component sizes
+      from the height PROP (inline styles) — className heights are ignored, which is
+      why the upstream h-10 always rendered at the 20px default. */}
+              <PlaneLockup height={56} className="text-on-color" />
             </div>
             <div className="flex flex-col overflow-y-auto p-6">
               <h3 className="font-semibold sm:text-18">

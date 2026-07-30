@@ -70,7 +70,15 @@ export const AuthRoot = observer(function AuthRoot(props: TAuthRoot) {
       const errorhandler = authErrorHandler(error_code?.toString() as EAuthenticationErrorCodes);
       if (errorhandler) {
         // password error handler
-        if ([EAuthenticationErrorCodes.AUTHENTICATION_FAILED_SIGN_UP].includes(errorhandler.code)) {
+        if (
+          [
+            EAuthenticationErrorCodes.AUTHENTICATION_FAILED_SIGN_UP,
+            // biplane: a weak-password bounce must land the user back INSIDE the
+            // sign-up password step (where the override checkbox lives) — it
+            // previously dumped them on the sign-in email screen.
+            EAuthenticationErrorCodes.PASSWORD_TOO_WEAK,
+          ].includes(errorhandler.code)
+        ) {
           setAuthMode(EAuthModes.SIGN_UP);
           setAuthStep(EAuthSteps.PASSWORD);
         }
