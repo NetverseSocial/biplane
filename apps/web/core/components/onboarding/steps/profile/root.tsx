@@ -148,8 +148,6 @@ export const ProfileSetupStep = observer(function ProfileSetupStep({ handleStepC
   const currentPassword = watch("password") || undefined;
   const currentConfirmPassword = watch("confirm_password") || undefined;
 
-  const isWeakTypedPassword =
-    !!currentPassword && getPasswordStrength(currentPassword) !== E_PASSWORD_STRENGTH.STRENGTH_VALID;
   const isValidPassword = useMemo(() => {
     if (currentPassword) {
       if (
@@ -267,7 +265,9 @@ export const ProfileSetupStep = observer(function ProfileSetupStep({ handleStepC
         {/* setting up password for the first time */}
         {!isPasswordAlreadySetup && (
           <SetPasswordRoot
-            showWeakPasswordOverride={serverRejectedWeak || isWeakTypedPassword}
+            // Visibility for a TYPED weak password is decided inside the child (it
+            // owns the value); this prop carries the SERVER's verdict only.
+            showWeakPasswordOverride={serverRejectedWeak}
             acceptWeakPassword={acceptWeakPassword}
             onAcceptWeakPasswordChange={setAcceptWeakPassword}
             onPasswordChange={(password) => setValue("password", password)}

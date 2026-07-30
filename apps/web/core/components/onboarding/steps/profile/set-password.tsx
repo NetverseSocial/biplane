@@ -5,6 +5,8 @@
  */
 
 import React, { useState, useCallback, useMemo } from "react";
+import { E_PASSWORD_STRENGTH } from "@plane/constants";
+import { getPasswordStrength } from "@plane/utils";
 import { LockIcon, ChevronDownIcon } from "@plane/propel/icons";
 import { PasswordInput, PasswordStrengthIndicator } from "@plane/ui";
 import { cn } from "@plane/utils";
@@ -39,6 +41,18 @@ export function SetPasswordRoot({
     password: "",
     confirmPassword: "",
   });
+
+  // biplane: the override checkbox visibility is decided HERE because this
+  // component owns the typed value. The parent previously gated it on
+  // watch("password") — a field the child never registers — so the control never
+  // rendered at all. Caught by an executable browser walk; invisible to source
+  // assertions.
+  const isTypedPasswordWeak = useMemo(
+    () =>
+      passwordState.password.length > 0 &&
+      getPasswordStrength(passwordState.password) !== E_PASSWORD_STRENGTH.STRENGTH_VALID,
+    [passwordState.password]
+  );
 
   const handleToggleExpand = useCallback(() => {
     if (disabled) return;
@@ -109,7 +123,7 @@ export function SetPasswordRoot({
       </div>
 
       <div className={expandedContentClasses}>
-        {showWeakPasswordOverride && onAcceptWeakPasswordChange && (
+        {(showWeakPasswordOverride || isTypedPasswordWeak) && onAcceptWeakPasswordChange && (
           <label className="flex cursor-pointer items-center gap-2 px-3 pt-2 text-11 text-tertiary">
             <input
               type="checkbox"
