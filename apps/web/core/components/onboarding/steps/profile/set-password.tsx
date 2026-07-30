@@ -18,9 +18,22 @@ interface SetPasswordRootProps {
   onPasswordChange?: (password: string) => void;
   onConfirmPasswordChange?: (confirmPassword: string) => void;
   disabled?: boolean;
+  // biplane: strength warns, the user decides — this component is the PRODUCER for
+  // the parent's override state (Morrow RC 3035 / Sable RC 3036: the state existed
+  // with no control that could set it, so the branch and payload were dead).
+  showWeakPasswordOverride?: boolean;
+  acceptWeakPassword?: boolean;
+  onAcceptWeakPasswordChange?: (accept: boolean) => void;
 }
 
-export function SetPasswordRoot({ onPasswordChange, onConfirmPasswordChange, disabled = false }: SetPasswordRootProps) {
+export function SetPasswordRoot({
+  onPasswordChange,
+  onConfirmPasswordChange,
+  disabled = false,
+  showWeakPasswordOverride = false,
+  acceptWeakPassword = false,
+  onAcceptWeakPasswordChange,
+}: SetPasswordRootProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [passwordState, setPasswordState] = useState<PasswordState>({
     password: "",
@@ -96,6 +109,16 @@ export function SetPasswordRoot({ onPasswordChange, onConfirmPasswordChange, dis
       </div>
 
       <div className={expandedContentClasses}>
+        {showWeakPasswordOverride && onAcceptWeakPasswordChange && (
+          <label className="flex cursor-pointer items-center gap-2 px-3 pt-2 text-11 text-tertiary">
+            <input
+              type="checkbox"
+              checked={acceptWeakPassword}
+              onChange={() => onAcceptWeakPasswordChange(!acceptWeakPassword)}
+            />
+            Use this password anyway — I understand it may be easy to guess
+          </label>
+        )}
         {/* Password input */}
         <div className="flex transform flex-col gap-2 pt-1 transition-all duration-300 ease-in-out">
           <PasswordInput
