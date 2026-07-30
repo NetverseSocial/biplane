@@ -28,6 +28,6 @@ export const WEBSITE_URL = process.env.VITE_WEBSITE_URL || "https://biplane.dev"
 // support email
 export const SUPPORT_EMAIL = process.env.VITE_SUPPORT_EMAIL || "";
 // marketing links
-export const MARKETING_PRICING_PAGE_LINK = "https://plane.so/pricing";
-export const MARKETING_CONTACT_US_PAGE_LINK = "https://plane.so/contact";
-export const MARKETING_PLANE_ONE_PAGE_LINK = "https://plane.so/one";
+export const MARKETING_PRICING_PAGE_LINK = "https://github.com/NetverseSocial/biplane#readme"; // biplane: no pricing page
+export const MARKETING_CONTACT_US_PAGE_LINK = "https://github.com/NetverseSocial/biplane/issues"; // biplane: contact = repo issues
+export const MARKETING_PLANE_ONE_PAGE_LINK = "https://github.com/NetverseSocial/biplane#readme"; // biplane: no Plane One
