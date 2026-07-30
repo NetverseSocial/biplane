@@ -38,7 +38,7 @@ class TestSignUpDoor:
     def test_weak_password_bounces_without_flag(self, api_client, configured_instance):
         response = api_client.post(
             "/auth/sign-up/",
-            {"email": "weak-door@example.com", "password": WEAK},
+            {"email": "weak-door@example.com", "password": WEAK, "first_name": "Weak"},
         )
         assert response.status_code == 302
         assert "PASSWORD_TOO_WEAK" in response["Location"]
@@ -64,21 +64,43 @@ class TestSignUpDoor:
         assert user.check_password(WEAK)
 
     @pytest.mark.django_db
-    def test_signup_names_are_canonicalized(self, api_client, configured_instance):
+    def test_signup_missing_first_name_is_clean_4xx(self, api_client, configured_instance):
+        response = api_client.post(
+            "/auth/sign-up/", {"email": "noname@example.com", "password": STRONG}
+        )
+        assert response.status_code == 302
+        assert "REQUIRED_FIRST_NAME_SIGN_UP" in response["Location"]
+        assert not User.objects.filter(email="noname@example.com").exists()
+
+    @pytest.mark.django_db
+    def test_signup_invalid_names_are_clean_4xx_not_stored(self, api_client, configured_instance):
+        # RC 3028: markup, overlong, DEL and C1 controls must all REJECT — the
+        # original bar was validation, not silent canonicalization.
+        for bad in ("<script>x</script>", "A" * 300, "Bell\x7fCurve", "Bell\x85Curve", "Bell\u2028Curve", "Bell\u200bCurve"):
+            response = api_client.post(
+                "/auth/sign-up/",
+                {"email": "badname@example.com", "password": STRONG, "first_name": bad},
+            )
+            assert response.status_code == 302, repr(bad)
+            assert "INVALID_NAME_SIGN_UP" in response["Location"], repr(bad)
+            assert not User.objects.filter(email="badname@example.com").exists(), repr(bad)
+
+    @pytest.mark.django_db
+    def test_signup_unicode_names_stored_verbatim(self, api_client, configured_instance):
         response = api_client.post(
             "/auth/sign-up/",
             {
-                "email": "canon@example.com",
+                "email": "jose@example.com",
                 "password": STRONG,
-                "first_name": "A" * 300 + "\x07",
-                "last_name": "  Bell\x00Curve  ",
+                "first_name": "José",
+                "last_name": "O'Brien-Smith Jr.",
             },
         )
         assert response.status_code == 302
-        user = User.objects.get(email="canon@example.com")
-        assert len(user.first_name) <= 150
-        assert "\x07" not in user.first_name
-        assert user.last_name == "BellCurve"
+        assert "INVALID_NAME" not in response["Location"]
+        user = User.objects.get(email="jose@example.com")
+        assert user.first_name == "José"
+        assert user.last_name == "O'Brien-Smith Jr."
 
 
 @pytest.mark.contract

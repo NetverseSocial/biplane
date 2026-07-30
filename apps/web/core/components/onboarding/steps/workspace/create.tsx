@@ -74,16 +74,21 @@ export const WorkspaceCreateStep = observer(function WorkspaceCreateStep({
   // user it was stored for — stale state from a failed sign-up must not leak
   // into a different account's onboarding.
   useEffect(() => {
+    // Wait for the user to load, VALIDATE the binding, and only then consume —
+    // removing before validating destroyed the legitimate handoff on ordinary
+    // first-mount timing (Sable RC 3029 / Morrow RC 3028).
+    const email = currentUser?.email;
+    if (!email) return;
     const raw = sessionStorage.getItem("bp_company_name");
     if (!raw) return;
-    sessionStorage.removeItem("bp_company_name");
     try {
-      const { email, company } = JSON.parse(raw);
-      if (!company || !email || email.toLowerCase() !== (currentUser?.email ?? "").toLowerCase()) return;
-      setValue("name", company, { shouldValidate: true });
+      const parsed = JSON.parse(raw);
+      if (!parsed.company || (parsed.email ?? "").toLowerCase() !== email.toLowerCase()) return;
+      sessionStorage.removeItem("bp_company_name");
+      setValue("name", parsed.company, { shouldValidate: true });
       setValue(
         "slug",
-        company
+        parsed.company
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, "-")
           .replace(/^-+|-+$/g, ""),
@@ -92,7 +97,7 @@ export const WorkspaceCreateStep = observer(function WorkspaceCreateStep({
         }
       );
     } catch {
-      // legacy/garbled value — already removed, nothing to do
+      sessionStorage.removeItem("bp_company_name"); // garbled legacy value
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser?.email]);

@@ -31,7 +31,10 @@ export const WorkspaceEditionBadge = observer(function WorkspaceEditionBadge() {
   return (
     <>
       <BiplaneAboutModal isOpen={isAboutOpen} onClose={() => setIsAboutOpen(false)} />
-      <Tooltip tooltipContent={`Biplane v${BIPLANE_VERSION} · built on Plane v${packageJson.version}`} isMobile={isMobile}>
+      <Tooltip
+        tooltipContent={`Biplane v${BIPLANE_VERSION} · built on Plane v${packageJson.version}`}
+        isMobile={isMobile}
+      >
         <Button
           variant="tertiary"
           size="lg"

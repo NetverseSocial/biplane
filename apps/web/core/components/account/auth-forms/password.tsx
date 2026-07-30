@@ -195,13 +195,14 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
           if (isPasswordValid) {
             // biplane: hand the company name to the onboarding workspace step —
             // the sign-up POST redirects, so sessionStorage is the carrier.
-            if (mode === EAuthModes.SIGN_UP && passwordFormData.company_name?.trim())
-              // Bound to the signing-up EMAIL — a failed sign-up must never leak
-              // user A's company into user B's onboarding.
-              sessionStorage.setItem(
-                "bp_company_name",
-                JSON.stringify({ email: passwordFormData.email, company: passwordFormData.company_name.trim() })
-              );
+            if (mode === EAuthModes.SIGN_UP) {
+              // Overwrite on EVERY submit: a blank company on a retry must clear the
+              // previous attempt's value, never leave it stale (Morrow RC 3028).
+              const company = passwordFormData.company_name?.trim();
+              if (company)
+                sessionStorage.setItem("bp_company_name", JSON.stringify({ email: passwordFormData.email, company }));
+              else sessionStorage.removeItem("bp_company_name");
+            }
             setIsSubmitting(true);
             if (formRef.current) formRef.current.submit(); // Manually submit the form if the condition is met
           } else {

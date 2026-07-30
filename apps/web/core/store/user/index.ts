@@ -195,7 +195,7 @@ export class UserStore implements IUserStore {
     const currentUserData = cloneDeep(this.data);
     try {
       if (currentUserData && currentUserData.is_password_autoset && this.data) {
-        const user = await this.authService.setPassword(csrfToken, { password: data.password });
+        const user = await this.authService.setPassword(csrfToken, data);
         set(this.data, ["is_password_autoset"], false);
         return user;
       }

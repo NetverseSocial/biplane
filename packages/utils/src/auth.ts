@@ -305,6 +305,9 @@ const errorCodeMessages: {
 // Error handler
 export const authErrorHandler = (errorCode: EAuthErrorCodes, email?: string): TAuthErrorInfo | undefined => {
   const bannerAlertErrorCodes = [
+    // biplane: the weak-password bounce must produce a handler or the sign-up
+    // password step is never reopened (Sable RC 3029 — this copy lacked it).
+    EAuthErrorCodes.PASSWORD_TOO_WEAK,
     EAuthErrorCodes.INSTANCE_NOT_CONFIGURED,
     EAuthErrorCodes.INVALID_EMAIL,
     EAuthErrorCodes.EMAIL_REQUIRED,

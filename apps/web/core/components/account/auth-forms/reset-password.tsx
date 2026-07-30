@@ -48,7 +48,7 @@ export const ResetPasswordForm = observer(function ResetPasswordForm() {
   // biplane: server is the strength authority — after a PASSWORD_TOO_WEAK bounce
   // (params preserved by the endpoint) the user may explicitly override.
   const bouncedWeak = searchParams.get("error_message") === "PASSWORD_TOO_WEAK";
-  const [acceptWeakPassword, setAcceptWeakPassword] = useState(bouncedWeak ? false : false);
+  const [acceptWeakPassword, setAcceptWeakPassword] = useState(false);
   const email = searchParams.get("email");
   const error_code = searchParams.get("error_code");
   // states
@@ -85,7 +85,7 @@ export const ResetPasswordForm = observer(function ResetPasswordForm() {
       resetFormData.password === resetFormData.confirm_password
         ? false
         : true,
-    [resetFormData]
+    [resetFormData, acceptWeakPassword]
   );
 
   useEffect(() => {

@@ -27,6 +27,11 @@ class TestSharedProjectNameValidator:
         assert not Project.is_valid_project_name("safe\n<script>")
         assert not Project.is_valid_project_name("safe\x00name")
         assert not Project.is_valid_project_name("bell\x07name")
+        # RC 3028: DEL, C1 range, and Unicode line/paragraph separators too
+        assert not Project.is_valid_project_name("del\x7fname")
+        assert not Project.is_valid_project_name("c1\x85name")
+        assert not Project.is_valid_project_name("ls\u2028name")
+        assert not Project.is_valid_project_name("ps\u2029name")
 
 
 @pytest.mark.contract
