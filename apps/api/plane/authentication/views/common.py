@@ -79,14 +79,16 @@ class ChangePasswordEndpoint(APIView):
             )
             return Response(exc.get_error_dict(), status=status.HTTP_400_BAD_REQUEST)
 
-        # check the password score
-        results = zxcvbn(new_password)
-        if results["score"] < 3:
-            exc = AuthenticationException(
-                error_code=AUTHENTICATION_ERROR_CODES["PASSWORD_TOO_WEAK"],
-                error_message="PASSWORD_TOO_WEAK",
-            )
-            return Response(exc.get_error_dict(), status=status.HTTP_400_BAD_REQUEST)
+        # check the password score — biplane: strength is a warning, not a wall; an
+        # explicit override from the form skips the gate (parity with sign-up/setup).
+        if request.data.get("accept_weak_password") is not True:
+            results = zxcvbn(new_password)
+            if results["score"] < 3:
+                exc = AuthenticationException(
+                    error_code=AUTHENTICATION_ERROR_CODES["PASSWORD_TOO_WEAK"],
+                    error_message="PASSWORD_TOO_WEAK",
+                )
+                return Response(exc.get_error_dict(), status=status.HTTP_400_BAD_REQUEST)
 
         # set_password also hashes the password that the user will get
         user.set_password(new_password)
@@ -119,13 +121,14 @@ class SetUserPasswordEndpoint(APIView):
             )
             return Response(exc.get_error_dict(), status=status.HTTP_400_BAD_REQUEST)
 
-        results = zxcvbn(password)
-        if results["score"] < 3:
-            exc = AuthenticationException(
-                error_code=AUTHENTICATION_ERROR_CODES["INVALID_PASSWORD"],
-                error_message="INVALID_PASSWORD",
-            )
-            return Response(exc.get_error_dict(), status=status.HTTP_400_BAD_REQUEST)
+        if request.data.get("accept_weak_password") is not True:
+            results = zxcvbn(password)
+            if results["score"] < 3:
+                exc = AuthenticationException(
+                    error_code=AUTHENTICATION_ERROR_CODES["INVALID_PASSWORD"],
+                    error_message="INVALID_PASSWORD",
+                )
+                return Response(exc.get_error_dict(), status=status.HTTP_400_BAD_REQUEST)
 
         # Set the user password
         user.set_password(password)

@@ -222,6 +222,16 @@ class InstanceAdminSignUpEndpoint(View):
                 )
                 return HttpResponseRedirect(url)
 
+            # biplane: capture the browser timezone at setup — the first admin was
+            # stranded on UTC because only user sign-up carried user_timezone.
+            user_timezone = request.POST.get("user_timezone", "UTC")
+            try:
+                import pytz
+
+                if user_timezone not in pytz.all_timezones_set:
+                    user_timezone = "UTC"
+            except Exception:
+                user_timezone = "UTC"
             user = User.objects.create(
                 first_name=first_name,
                 last_name=last_name,
@@ -229,6 +239,7 @@ class InstanceAdminSignUpEndpoint(View):
                 username=uuid.uuid4().hex,
                 password=make_password(password),
                 is_password_autoset=False,
+                user_timezone=user_timezone,
             )
             _ = Profile.objects.create(user=user, company_name=company_name)
             # settings last active for the user

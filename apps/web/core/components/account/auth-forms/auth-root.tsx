@@ -29,6 +29,9 @@ import { AuthFormRoot } from "./form-root";
 
 type TAuthRoot = {
   authMode: EAuthModes;
+  // biplane: the root flips modes on error bounces (e.g. wrong-mode redirects) —
+  // report it so the surrounding header shows the RIGHT toggle, not the route default.
+  onAuthModeChange?: (mode: EAuthModes) => void;
 };
 
 export const AuthRoot = observer(function AuthRoot(props: TAuthRoot) {
@@ -40,9 +43,13 @@ export const AuthRoot = observer(function AuthRoot(props: TAuthRoot) {
   const workspaceSlug = searchParams.get("slug");
   const error_code = searchParams.get("error_code");
   // props
-  const { authMode: currentAuthMode } = props;
+  const { authMode: currentAuthMode, onAuthModeChange } = props;
   // states
-  const [authMode, setAuthMode] = useState<EAuthModes | undefined>(undefined);
+  const [authMode, _setAuthMode] = useState<EAuthModes | undefined>(undefined);
+  const setAuthMode = (mode: EAuthModes) => {
+    _setAuthMode(mode);
+    onAuthModeChange?.(mode);
+  };
   const [authStep, setAuthStep] = useState<EAuthSteps>(EAuthSteps.EMAIL);
   const [email, setEmail] = useState(emailParam ? emailParam.toString() : "");
   const [errorInfo, setErrorInfo] = useState<TAuthErrorInfo | undefined>(undefined);

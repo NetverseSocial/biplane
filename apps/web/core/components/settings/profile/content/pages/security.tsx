@@ -70,6 +70,10 @@ export const SecurityProfileSettings = observer(function SecurityProfileSettings
   const { t } = useTranslation();
 
   const isNewPasswordSameAsOldPassword = oldPassword !== "" && password !== "" && password === oldPassword;
+  // biplane: strength warns, the user decides — the override unlocks the change
+  // (server accepts accept_weak_password; parity with sign-up and instance setup).
+  const [acceptWeakPassword, setAcceptWeakPassword] = useState(false);
+  const isWeakPassword = password.trim() !== "" && getPasswordStrength(password) != E_PASSWORD_STRENGTH.STRENGTH_VALID;
 
   const handleShowPassword = (key: keyof typeof showPassword) =>
     setShowPassword((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -83,6 +87,7 @@ export const SecurityProfileSettings = observer(function SecurityProfileSettings
       await changePassword(csrfToken, {
         ...(oldPasswordRequired && { old_password }),
         new_password,
+        ...(acceptWeakPassword && { accept_weak_password: true }),
       });
 
       reset(defaultValues);
@@ -114,7 +119,7 @@ export const SecurityProfileSettings = observer(function SecurityProfileSettings
   };
 
   const isButtonDisabled =
-    getPasswordStrength(password) != E_PASSWORD_STRENGTH.STRENGTH_VALID ||
+    (!acceptWeakPassword && getPasswordStrength(password) != E_PASSWORD_STRENGTH.STRENGTH_VALID) ||
     (oldPasswordRequired && oldPassword.trim() === "") ||
     password.trim() === "" ||
     confirmPassword.trim() === "" ||
@@ -123,7 +128,20 @@ export const SecurityProfileSettings = observer(function SecurityProfileSettings
 
   const passwordSupport = password.length > 0 &&
     getPasswordStrength(password) != E_PASSWORD_STRENGTH.STRENGTH_VALID && (
-      <PasswordStrengthIndicator password={password} isFocused={isPasswordInputFocused} />
+      <>
+        <PasswordStrengthIndicator password={password} isFocused={isPasswordInputFocused} />
+        {/* biplane: explicit override instead of a silent wall */}
+        {isWeakPassword && (
+          <label className="flex cursor-pointer items-center gap-2 pt-1 text-13 text-tertiary">
+            <input
+              type="checkbox"
+              checked={acceptWeakPassword}
+              onChange={() => setAcceptWeakPassword((prev) => !prev)}
+            />
+            Use this password anyway — I understand it may be easy to guess
+          </label>
+        )}
+      </>
     );
 
   const renderPasswordMatchError = !isRetryPasswordInputFocused || confirmPassword.length >= password.length;

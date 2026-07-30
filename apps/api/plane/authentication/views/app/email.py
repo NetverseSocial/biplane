@@ -212,6 +212,11 @@ class SignUpAuthEndpoint(View):
                 code=password,
                 is_signup=True,
                 callback=post_user_auth_workflow,
+                # biplane: name collected on the sign-up form; explicit weak-password
+                # override checkbox mirrors instance setup.
+                first_name=request.POST.get("first_name", ""),
+                last_name=request.POST.get("last_name", ""),
+                accept_weak_password=request.POST.get("accept_weak_password") == "True",
             )
             user = provider.authenticate()
             # Login the user and record his device info

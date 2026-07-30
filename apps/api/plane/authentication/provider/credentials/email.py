@@ -18,11 +18,27 @@ from plane.license.utils.instance_value import get_configuration_value
 class EmailProvider(CredentialAdapter):
     provider = "email"
 
-    def __init__(self, request, key=None, code=None, is_signup=False, callback=None):
+    def __init__(
+        self,
+        request,
+        key=None,
+        code=None,
+        is_signup=False,
+        callback=None,
+        first_name="",
+        last_name="",
+        accept_weak_password=False,
+    ):
         super().__init__(request=request, provider=self.provider, callback=callback)
         self.key = key
         self.code = code
         self.is_signup = is_signup
+        # biplane: collected on the sign-up form itself (name belongs up front)
+        self.first_name = str(first_name or "").strip()
+        self.last_name = str(last_name or "").strip()
+        # biplane: strength is a warning, not a wall — an explicit user override
+        # (checkbox on the form) skips the zxcvbn gate, mirroring instance setup.
+        self.accept_weak_password = bool(accept_weak_password)
 
         (ENABLE_EMAIL_PASSWORD,) = get_configuration_value([
             {
@@ -51,8 +67,8 @@ class EmailProvider(CredentialAdapter):
                 "email": self.key,
                 "user": {
                     "avatar": "",
-                    "first_name": "",
-                    "last_name": "",
+                    "first_name": self.first_name,
+                    "last_name": self.last_name,
                     "provider_id": "",
                     "is_password_autoset": False,
                 },

@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
 import { Controller, useForm } from "react-hook-form";
 import { CircleCheck } from "lucide-react";
@@ -67,6 +67,27 @@ export const WorkspaceCreateStep = observer(function WorkspaceCreateStep({
     },
     mode: "onChange",
   });
+
+  // biplane: the sign-up form collects a company name and hands it over via
+  // sessionStorage (the sign-up POST redirects) — prefill the workspace from it once.
+  useEffect(() => {
+    const company = sessionStorage.getItem("bp_company_name");
+    if (company) {
+      sessionStorage.removeItem("bp_company_name");
+      setValue("name", company, { shouldValidate: true });
+      setValue(
+        "slug",
+        company
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, ""),
+        {
+          shouldValidate: true,
+        }
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleCreateWorkspace = async (formData: IWorkspace) => {
     if (isSubmitting) return;

@@ -47,7 +47,7 @@ export interface IUserStore {
   deactivateAccount: () => Promise<void>;
   changePassword: (
     csrfToken: string,
-    payload: { old_password?: string; new_password: string }
+    payload: { old_password?: string; new_password: string; accept_weak_password?: boolean }
   ) => Promise<IUser | undefined>;
   reset: () => void;
   signOut: () => Promise<void>;
@@ -211,6 +211,7 @@ export class UserStore implements IUserStore {
     payload: {
       old_password?: string;
       new_password: string;
+      accept_weak_password?: boolean;
     }
   ): Promise<IUser | undefined> => {
     try {

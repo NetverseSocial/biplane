@@ -153,7 +153,10 @@ export class UserService extends APIService {
       });
   }
 
-  async changePassword(token: string, data: { old_password?: string; new_password: string }): Promise<any> {
+  async changePassword(
+    token: string,
+    data: { old_password?: string; new_password: string; accept_weak_password?: boolean }
+  ): Promise<any> {
     return this.post(`/auth/change-password/`, data, {
       headers: {
         "X-CSRFTOKEN": token,

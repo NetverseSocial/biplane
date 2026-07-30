@@ -141,6 +141,9 @@ class Project(BaseModel):
         return f"{self.name} <{self.workspace.name}>"
 
     FORBIDDEN_IDENTIFIER_CHARS_PATTERN = r"^.*[&+,:;$^}{*=?@#|'<>.()%!-].*$"
+    # biplane: NAMES are display text, not identifiers — "TEST-MyProj" or "O'Brien & Sons"
+    # must be valid. Ban only injection-shaped characters here.
+    FORBIDDEN_PROJECT_NAME_CHARS_PATTERN = r"^.*[<>{}\[\]$^*=?@#|;].*$"
 
     class Meta:
         unique_together = [

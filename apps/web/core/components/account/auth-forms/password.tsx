@@ -37,11 +37,19 @@ type TPasswordFormValues = {
   email: string;
   password: string;
   confirm_password?: string;
+  // biplane: collected up front on sign-up (John: name/company belong here, not
+  // deferred to the onboarding wizard)
+  first_name?: string;
+  last_name?: string;
+  company_name?: string;
 };
 
 const defaultValues: TPasswordFormValues = {
   email: "",
   password: "",
+  first_name: "",
+  last_name: "",
+  company_name: "",
 };
 
 const authService = new AuthService();
@@ -63,6 +71,9 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
   const [isPasswordInputFocused, setIsPasswordInputFocused] = useState(false);
   const [isRetryPasswordInputFocused, setIsRetryPasswordInputFocused] = useState(false);
   const [isBannerMessage, setBannerMessage] = useState(false);
+  // biplane: strength is a warning, not a wall — after the banner, the user may
+  // explicitly proceed with their password (mirrors instance setup).
+  const [acceptWeakPassword, setAcceptWeakPassword] = useState(false);
 
   const handleShowPassword = (key: keyof typeof showPassword) =>
     setShowPassword((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -107,10 +118,12 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
     () =>
       !isSubmitting &&
       !!passwordFormData.password &&
-      (mode === EAuthModes.SIGN_UP ? passwordFormData.password === passwordFormData.confirm_password : true)
+      (mode === EAuthModes.SIGN_UP
+        ? passwordFormData.password === passwordFormData.confirm_password && !!passwordFormData.first_name?.trim()
+        : true)
         ? false
         : true,
-    [isSubmitting, mode, passwordFormData.confirm_password, passwordFormData.password]
+    [isSubmitting, mode, passwordFormData.confirm_password, passwordFormData.password, passwordFormData.first_name]
   );
 
   const password = passwordFormData?.password ?? "";
@@ -128,20 +141,31 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
   return (
     <>
       {isBannerMessage && mode === EAuthModes.SIGN_UP && (
-        <div className="relative flex items-center gap-2 rounded-md border border-danger-strong/50 bg-danger-subtle p-2">
-          <div className="relative flex h-4 w-4 shrink-0 items-center justify-center">
-            <Info size={16} className="text-danger-primary" />
+        <div className="space-y-2 rounded-md border border-danger-strong/50 bg-danger-subtle p-2">
+          <div className="relative flex items-center gap-2">
+            <div className="relative flex h-4 w-4 shrink-0 items-center justify-center">
+              <Info size={16} className="text-danger-primary" />
+            </div>
+            <div className="w-full text-13 font-medium text-danger-primary">
+              {t("auth.sign_up.errors.password.strength")}
+            </div>
+            <button
+              type="button"
+              className="relative ml-auto flex h-6 w-6 cursor-pointer items-center justify-center rounded-xs text-accent-primary/80 transition-all hover:bg-danger-subtle-hover"
+              onClick={() => setBannerMessage(false)}
+            >
+              <CloseIcon className="h-4 w-4 shrink-0 text-danger-primary" />
+            </button>
           </div>
-          <div className="w-full text-13 font-medium text-danger-primary">
-            {t("auth.sign_up.errors.password.strength")}
-          </div>
-          <button
-            type="button"
-            className="relative ml-auto flex h-6 w-6 cursor-pointer items-center justify-center rounded-xs text-accent-primary/80 transition-all hover:bg-danger-subtle-hover"
-            onClick={() => setBannerMessage(false)}
-          >
-            <CloseIcon className="h-4 w-4 shrink-0 text-danger-primary" />
-          </button>
+          {/* biplane: explicit override — strength warns, the user decides */}
+          <label className="flex cursor-pointer items-center gap-2 pl-6 text-13 text-tertiary">
+            <input
+              type="checkbox"
+              checked={acceptWeakPassword}
+              onChange={() => setAcceptWeakPassword((prev) => !prev)}
+            />
+            Use this password anyway — I understand it may be easy to guess
+          </label>
         </div>
       )}
       <form
@@ -152,11 +176,17 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
         onSubmit={async (event) => {
           event.preventDefault(); // Prevent form from submitting by default
           await handleCSRFToken();
+          // biplane: the strength gate yields to the explicit override checkbox.
           const isPasswordValid =
             mode === EAuthModes.SIGN_UP
-              ? getPasswordStrength(passwordFormData.password) === E_PASSWORD_STRENGTH.STRENGTH_VALID
+              ? acceptWeakPassword ||
+                getPasswordStrength(passwordFormData.password) === E_PASSWORD_STRENGTH.STRENGTH_VALID
               : true;
           if (isPasswordValid) {
+            // biplane: hand the company name to the onboarding workspace step —
+            // the sign-up POST redirects, so sessionStorage is the carrier.
+            if (mode === EAuthModes.SIGN_UP && passwordFormData.company_name?.trim())
+              sessionStorage.setItem("bp_company_name", passwordFormData.company_name.trim());
             setIsSubmitting(true);
             if (formRef.current) formRef.current.submit(); // Manually submit the form if the condition is met
           } else {
@@ -171,6 +201,59 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
         <input type="hidden" name="user_timezone" value={Intl.DateTimeFormat().resolvedOptions().timeZone} />
         <input type="hidden" value={passwordFormData.email} name="email" />
         {nextPath && <input type="hidden" value={nextPath} name="next_path" />}
+        {mode === EAuthModes.SIGN_UP && acceptWeakPassword && (
+          <input type="hidden" name="accept_weak_password" value="True" />
+        )}
+        {mode === EAuthModes.SIGN_UP && (
+          <div className="flex flex-col gap-4 sm:flex-row">
+            <div className="w-full space-y-1">
+              <label htmlFor="first_name" className="text-13 font-medium text-tertiary">
+                First name <span className="text-danger-primary">*</span>
+              </label>
+              <Input
+                id="first_name"
+                name="first_name"
+                type="text"
+                value={passwordFormData.first_name}
+                onChange={(e) => handleFormChange("first_name", e.target.value)}
+                placeholder="Amelia"
+                className="h-10 w-full border border-strong !bg-surface-1 placeholder:text-placeholder"
+                maxLength={50}
+              />
+            </div>
+            <div className="w-full space-y-1">
+              <label htmlFor="last_name" className="text-13 font-medium text-tertiary">
+                Last name
+              </label>
+              <Input
+                id="last_name"
+                name="last_name"
+                type="text"
+                value={passwordFormData.last_name}
+                onChange={(e) => handleFormChange("last_name", e.target.value)}
+                placeholder="Earhart"
+                className="h-10 w-full border border-strong !bg-surface-1 placeholder:text-placeholder"
+                maxLength={50}
+              />
+            </div>
+          </div>
+        )}
+        {mode === EAuthModes.SIGN_UP && (
+          <div className="space-y-1">
+            <label htmlFor="company_name" className="text-13 font-medium text-tertiary">
+              Company name
+            </label>
+            <Input
+              id="company_name"
+              type="text"
+              value={passwordFormData.company_name}
+              onChange={(e) => handleFormChange("company_name", e.target.value)}
+              placeholder="Prefills your workspace"
+              className="h-10 w-full border border-strong !bg-surface-1 placeholder:text-placeholder"
+              maxLength={80}
+            />
+          </div>
+        )}
         <div className="space-y-1">
           <label htmlFor="email" className="text-13 font-medium text-tertiary">
             {t("auth.common.email.label")}

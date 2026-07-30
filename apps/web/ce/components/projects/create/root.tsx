@@ -10,6 +10,7 @@ import { FormProvider, useForm } from "react-hook-form";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
+import { useAppRouter } from "@/hooks/use-app-router";
 import { EFileAssetType } from "@plane/types";
 // components
 import ProjectCommonAttributes from "@/components/project/create/common-attributes";
@@ -40,6 +41,8 @@ export const CreateProjectForm = observer(function CreateProjectForm(props: TCre
   // store
   const { t } = useTranslation();
   const { addProjectToFavorites, createProject, updateProject } = useProject();
+  // biplane: land the user IN the new project (John: creation left you on the list)
+  const router = useAppRouter();
   // states
   const [shouldAutoSyncIdentifier, setShouldAutoSyncIdentifier] = useState(true);
   // form info
@@ -112,6 +115,9 @@ export const CreateProjectForm = observer(function CreateProjectForm(props: TCre
           handleAddToFavorites(res.id);
         }
         handleNextStep(res.id);
+        // biplane: navigate into the new project — the feature-selection step
+        // overlays the project page and closes onto it.
+        router.push(`/${workspaceSlug}/projects/${res.id}/issues/`);
       })
       .catch((err) => {
         try {
@@ -138,10 +144,21 @@ export const CreateProjectForm = observer(function CreateProjectForm(props: TCre
               });
             }
           } else {
+            // biplane: surface the API's actual message — "Something went wrong"
+            // hid a name-validation 400 from John entirely.
+            const KNOWN: Record<string, string> = {
+              PROJECT_NAME_CANNOT_CONTAIN_SPECIAL_CHARACTERS: "Project name contains characters that are not allowed.",
+              PROJECT_IDENTIFIER_CANNOT_CONTAIN_SPECIAL_CHARACTERS: "Project ID can only contain letters and numbers.",
+            };
+            const firstDetail = Object.values(errorData)
+              .flat()
+              .find((v): v is string => typeof v === "string");
             setToast({
               type: TOAST_TYPE.ERROR,
               title: t("toast.error"),
-              message: t("something_went_wrong"),
+              message: firstDetail
+                ? (KNOWN[firstDetail] ?? String(firstDetail).replaceAll("_", " ").toLowerCase())
+                : t("something_went_wrong"),
             });
           }
         } catch (error) {
