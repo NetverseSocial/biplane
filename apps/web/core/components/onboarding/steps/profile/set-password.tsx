@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { E_PASSWORD_STRENGTH } from "@plane/constants";
 import { getPasswordStrength } from "@plane/utils";
 import { LockIcon, ChevronDownIcon } from "@plane/propel/icons";
@@ -36,7 +36,9 @@ export function SetPasswordRoot({
   acceptWeakPassword = false,
   onAcceptWeakPasswordChange,
 }: SetPasswordRootProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  // biplane (John, prod testing): fields are VISIBLE by default — consistent with the
+  // sign-up door; no click-to-reveal for something the user is being asked to do.
+  const [isExpanded, setIsExpanded] = useState(true);
   const [passwordState, setPasswordState] = useState<PasswordState>({
     password: "",
     confirmPassword: "",
@@ -53,6 +55,12 @@ export function SetPasswordRoot({
       getPasswordStrength(passwordState.password) !== E_PASSWORD_STRENGTH.STRENGTH_VALID,
     [passwordState.password]
   );
+
+  // A server rejection must never land in a collapsed section — the checkbox the
+  // user has to act on lives here. Force the section open when the verdict arrives.
+  useEffect(() => {
+    if (showWeakPasswordOverride) setIsExpanded(true);
+  }, [showWeakPasswordOverride]);
 
   const handleToggleExpand = useCallback(() => {
     if (disabled) return;
