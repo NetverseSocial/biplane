@@ -48,6 +48,8 @@ export enum EAuthenticationErrorCodes {
   // Password strength
   INVALID_PASSWORD = "5020",
   PASSWORD_TOO_WEAK = "5021",
+  REQUIRED_FIRST_NAME_SIGN_UP = "5046",
+  INVALID_NAME_SIGN_UP = "5047",
   SMTP_NOT_CONFIGURED = "5025",
   // Sign Up
   USER_ALREADY_EXIST = "5030",
@@ -144,6 +146,14 @@ const errorCodeMessages: {
   [EAuthenticationErrorCodes.INVALID_PASSWORD]: {
     title: `Invalid password`,
     message: () => `Invalid password. Please try again.`,
+  },
+  [EAuthenticationErrorCodes.REQUIRED_FIRST_NAME_SIGN_UP]: {
+    title: "First name required",
+    message: () => "Please enter your first name to create your account.",
+  },
+  [EAuthenticationErrorCodes.INVALID_NAME_SIGN_UP]: {
+    title: "Invalid name",
+    message: () => "Names can contain letters, spaces, apostrophes, periods, and hyphens (max 150 characters).",
   },
   [EAuthenticationErrorCodes.PASSWORD_TOO_WEAK]: {
     title: `Password too weak`,
@@ -425,6 +435,10 @@ export const authErrorHandler = (errorCode: EAuthenticationErrorCodes, email?: s
     EAuthenticationErrorCodes.ADMIN_USER_DEACTIVATED,
     EAuthenticationErrorCodes.RATE_LIMIT_EXCEEDED,
     EAuthenticationErrorCodes.PASSWORD_TOO_WEAK,
+    // biplane: message entries without list membership are dead code (the exact
+    // sibling-asymmetry Sable flagged) — new codes join the list WITH their messages.
+    EAuthenticationErrorCodes.REQUIRED_FIRST_NAME_SIGN_UP,
+    EAuthenticationErrorCodes.INVALID_NAME_SIGN_UP,
   ];
 
   if (bannerAlertErrorCodes.includes(errorCode))

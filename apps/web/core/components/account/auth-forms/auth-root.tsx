@@ -29,6 +29,9 @@ import { AuthFormRoot } from "./form-root";
 
 type TAuthRoot = {
   authMode: EAuthModes;
+  // biplane: the root flips modes on error bounces (e.g. wrong-mode redirects) —
+  // report it so the surrounding header shows the RIGHT toggle, not the route default.
+  onAuthModeChange?: (mode: EAuthModes) => void;
 };
 
 export const AuthRoot = observer(function AuthRoot(props: TAuthRoot) {
@@ -40,9 +43,13 @@ export const AuthRoot = observer(function AuthRoot(props: TAuthRoot) {
   const workspaceSlug = searchParams.get("slug");
   const error_code = searchParams.get("error_code");
   // props
-  const { authMode: currentAuthMode } = props;
+  const { authMode: currentAuthMode, onAuthModeChange } = props;
   // states
-  const [authMode, setAuthMode] = useState<EAuthModes | undefined>(undefined);
+  const [authMode, _setAuthMode] = useState<EAuthModes | undefined>(undefined);
+  const setAuthMode = (mode: EAuthModes) => {
+    _setAuthMode(mode);
+    onAuthModeChange?.(mode);
+  };
   const [authStep, setAuthStep] = useState<EAuthSteps>(EAuthSteps.EMAIL);
   const [email, setEmail] = useState(emailParam ? emailParam.toString() : "");
   const [errorInfo, setErrorInfo] = useState<TAuthErrorInfo | undefined>(undefined);
@@ -63,7 +70,15 @@ export const AuthRoot = observer(function AuthRoot(props: TAuthRoot) {
       const errorhandler = authErrorHandler(error_code?.toString() as EAuthenticationErrorCodes);
       if (errorhandler) {
         // password error handler
-        if ([EAuthenticationErrorCodes.AUTHENTICATION_FAILED_SIGN_UP].includes(errorhandler.code)) {
+        if (
+          [
+            EAuthenticationErrorCodes.AUTHENTICATION_FAILED_SIGN_UP,
+            // biplane: a weak-password bounce must land the user back INSIDE the
+            // sign-up password step (where the override checkbox lives) — it
+            // previously dumped them on the sign-in email screen.
+            EAuthenticationErrorCodes.PASSWORD_TOO_WEAK,
+          ].includes(errorhandler.code)
+        ) {
           setAuthMode(EAuthModes.SIGN_UP);
           setAuthStep(EAuthSteps.PASSWORD);
         }

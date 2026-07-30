@@ -80,9 +80,15 @@ export const ProfileSetupStep = observer(function ProfileSetupStep({ handleStepC
   // derived values
   const userAvatar = watch("avatar_url");
 
+  // biplane: strength warns, the user decides — parity with every other door.
+  const [acceptWeakPassword, setAcceptWeakPassword] = useState(false);
+  // The SERVER is the strength authority; its rejection reveals the override.
+  const [serverRejectedWeak, setServerRejectedWeak] = useState(false);
+
   const handleSetPassword = async (password: string) => {
+    // (accept_weak_password rides along when the user opted in below)
     const token = await authService.requestCSRFToken().then((data) => data?.csrf_token);
-    await authService.setPassword(token, { password });
+    await authService.setPassword(token, { password, ...(acceptWeakPassword && { accept_weak_password: true }) });
   };
 
   const handleSubmitUserDetail = async (formData: TProfileSetupFormValues) => {
@@ -96,12 +102,28 @@ export const ProfileSetupStep = observer(function ProfileSetupStep({ handleStepC
         updateCurrentUser(userDetailsPayload),
         formData.password && handleSetPassword(formData.password),
       ]);
-    } catch {
+      return true;
+    } catch (error: unknown) {
+      // biplane (Sable RC 3036): this catch swallowed the failure and onboarding
+      // advanced anyway — survivable while setPassword only failed on faults, a dead
+      // end now that a weak password is a routine, user-triggered rejection. Report
+      // failure so the caller can NOT advance, and reveal the override on a weak
+      // rejection so the retry is possible.
+      const err = error as { error_code?: string | number; error_message?: string };
+      const weak =
+        String(err?.error_code) === "5020" ||
+        String(err?.error_code) === "5021" ||
+        err?.error_message === "INVALID_PASSWORD" ||
+        err?.error_message === "PASSWORD_TOO_WEAK";
+      if (weak) setServerRejectedWeak(true);
       setToast({
         type: TOAST_TYPE.ERROR,
         title: "Error",
-        message: "User details update failed. Please try again!",
+        message: weak
+          ? "That password looks easy to guess. Pick a stronger one, or check “Use this password anyway”."
+          : "User details update failed. Please try again!",
       });
+      return false;
     }
   };
 
@@ -110,7 +132,9 @@ export const ProfileSetupStep = observer(function ProfileSetupStep({ handleStepC
     updateUserProfile({
       has_marketing_email_consent: formData.has_marketing_email_consent,
     });
-    await handleSubmitUserDetail(formData);
+    const succeeded = await handleSubmitUserDetail(formData);
+    // Never advance past a failed profile/password submit.
+    if (!succeeded) return;
     handleStepChange(EOnboardingSteps.PROFILE_SETUP);
   };
 
@@ -128,7 +152,7 @@ export const ProfileSetupStep = observer(function ProfileSetupStep({ handleStepC
     if (currentPassword) {
       if (
         currentPassword === currentConfirmPassword &&
-        getPasswordStrength(currentPassword) === E_PASSWORD_STRENGTH.STRENGTH_VALID
+        (acceptWeakPassword || getPasswordStrength(currentPassword) === E_PASSWORD_STRENGTH.STRENGTH_VALID)
       ) {
         return true;
       } else {
@@ -137,7 +161,7 @@ export const ProfileSetupStep = observer(function ProfileSetupStep({ handleStepC
     } else {
       return true;
     }
-  }, [currentPassword, currentConfirmPassword]);
+  }, [currentPassword, currentConfirmPassword, acceptWeakPassword]);
 
   // Check for all available fields validation and if password field is available, then checks for password validation (strength + confirmation).
   // Also handles the condition for optional password i.e if password field is optional it only checks for above validation if it's not empty.
@@ -241,6 +265,11 @@ export const ProfileSetupStep = observer(function ProfileSetupStep({ handleStepC
         {/* setting up password for the first time */}
         {!isPasswordAlreadySetup && (
           <SetPasswordRoot
+            // Visibility for a TYPED weak password is decided inside the child (it
+            // owns the value); this prop carries the SERVER's verdict only.
+            showWeakPasswordOverride={serverRejectedWeak}
+            acceptWeakPassword={acceptWeakPassword}
+            onAcceptWeakPasswordChange={setAcceptWeakPassword}
             onPasswordChange={(password) => setValue("password", password)}
             onConfirmPasswordChange={(confirm_password) => setValue("confirm_password", confirm_password)}
           />

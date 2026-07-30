@@ -4,7 +4,9 @@
  * See the LICENSE file for details.
  */
 
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
+import { E_PASSWORD_STRENGTH } from "@plane/constants";
+import { getPasswordStrength } from "@plane/utils";
 import { LockIcon, ChevronDownIcon } from "@plane/propel/icons";
 import { PasswordInput, PasswordStrengthIndicator } from "@plane/ui";
 import { cn } from "@plane/utils";
@@ -18,14 +20,47 @@ interface SetPasswordRootProps {
   onPasswordChange?: (password: string) => void;
   onConfirmPasswordChange?: (confirmPassword: string) => void;
   disabled?: boolean;
+  // biplane: strength warns, the user decides — this component is the PRODUCER for
+  // the parent's override state (Morrow RC 3035 / Sable RC 3036: the state existed
+  // with no control that could set it, so the branch and payload were dead).
+  showWeakPasswordOverride?: boolean;
+  acceptWeakPassword?: boolean;
+  onAcceptWeakPasswordChange?: (accept: boolean) => void;
 }
 
-export function SetPasswordRoot({ onPasswordChange, onConfirmPasswordChange, disabled = false }: SetPasswordRootProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+export function SetPasswordRoot({
+  onPasswordChange,
+  onConfirmPasswordChange,
+  disabled = false,
+  showWeakPasswordOverride = false,
+  acceptWeakPassword = false,
+  onAcceptWeakPasswordChange,
+}: SetPasswordRootProps) {
+  // biplane (John, prod testing): fields are VISIBLE by default — consistent with the
+  // sign-up door; no click-to-reveal for something the user is being asked to do.
+  const [isExpanded, setIsExpanded] = useState(true);
   const [passwordState, setPasswordState] = useState<PasswordState>({
     password: "",
     confirmPassword: "",
   });
+
+  // biplane: typed-weak visibility is decided HERE because this component owns the
+  // typed value; the parent's prop carries only the server's verdict. (Sable RC 3041:
+  // an earlier version of this comment asserted the old parent-side gate could never
+  // render — a mechanism the cited walk did not test. What's established is the
+  // ownership rule above and the executable conduction proof on PR #6, comment 9649.)
+  const isTypedPasswordWeak = useMemo(
+    () =>
+      passwordState.password.length > 0 &&
+      getPasswordStrength(passwordState.password) !== E_PASSWORD_STRENGTH.STRENGTH_VALID,
+    [passwordState.password]
+  );
+
+  // A server rejection must never land in a collapsed section — the checkbox the
+  // user has to act on lives here. Force the section open when the verdict arrives.
+  useEffect(() => {
+    if (showWeakPasswordOverride) setIsExpanded(true);
+  }, [showWeakPasswordOverride]);
 
   const handleToggleExpand = useCallback(() => {
     if (disabled) return;
@@ -96,6 +131,16 @@ export function SetPasswordRoot({ onPasswordChange, onConfirmPasswordChange, dis
       </div>
 
       <div className={expandedContentClasses}>
+        {(showWeakPasswordOverride || isTypedPasswordWeak) && onAcceptWeakPasswordChange && (
+          <label className="flex cursor-pointer items-center gap-2 px-3 pt-2 text-11 text-tertiary">
+            <input
+              type="checkbox"
+              checked={acceptWeakPassword}
+              onChange={() => onAcceptWeakPasswordChange(!acceptWeakPassword)}
+            />
+            Use this password anyway — I understand it may be easy to guess
+          </label>
+        )}
         {/* Password input */}
         <div className="flex transform flex-col gap-2 pt-1 transition-all duration-300 ease-in-out">
           <PasswordInput

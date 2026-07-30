@@ -192,6 +192,25 @@ class TestProjectCreateFromWorkflowTemplate:
         assert State.objects.filter(project=project).exclude(color="").count() == len(BIPLANE_STATES)
 
     @pytest.mark.django_db
+    def test_hyphenated_project_name_is_allowed(self, session_client, workspace, create_user):
+        """Round-2 batch (John): 'TEST-MyProj' was rejected because NAMES were run
+        through the IDENTIFIER forbidden-chars pattern. Names get their own rule."""
+        session_client.force_authenticate(user=create_user)
+        response = session_client.post(
+            _project_url(workspace.slug),
+            {"name": "TEST-MyProj (O'Brien & Sons)", "identifier": "TESTMYPROJ"},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_201_CREATED
+        # identifiers stay strict
+        response2 = session_client.post(
+            _project_url(workspace.slug),
+            {"name": "Strict Identifier", "identifier": "BAD-ID"},
+            format="json",
+        )
+        assert response2.status_code == status.HTTP_400_BAD_REQUEST
+
+    @pytest.mark.django_db
     def test_no_template_id_still_creates_default_states(self, session_client, workspace, create_user):
         """The OSS default path is untouched: no template id → stock Plane states."""
         session_client.force_authenticate(user=create_user)

@@ -141,6 +141,27 @@ class Project(BaseModel):
         return f"{self.name} <{self.workspace.name}>"
 
     FORBIDDEN_IDENTIFIER_CHARS_PATTERN = r"^.*[&+,:;$^}{*=?@#|'<>.()%!-].*$"
+    # biplane: NAMES are display text, not identifiers — "TEST-MyProj" or "O'Brien & Sons"
+    # must be valid. One shared validator for EVERY surface (app + public API): bans
+    # injection-shaped characters and control characters, independent of line
+    # boundaries (a regex with dot-matching was bypassable via embedded newlines).
+    FORBIDDEN_PROJECT_NAME_CHARS = frozenset("<>{}[]$^*=?@#|;")
+
+    @staticmethod
+    def is_valid_project_name(name):
+        # Non-strings are invalid outright — str() coercion would validate the
+        # repr of a dict/int instead of rejecting the type (Morrow RC 3031).
+        if not isinstance(name, str):
+            return False
+        # C0 controls, DEL, C1 controls, and the Unicode line/paragraph separators
+        # (U+2028/U+2029) are all rejected alongside the forbidden charset.
+        return not any(
+            (ch in Project.FORBIDDEN_PROJECT_NAME_CHARS)
+            or ord(ch) < 32
+            or 0x7F <= ord(ch) <= 0x9F
+            or ch in "\u2028\u2029"
+            for ch in name
+        )
 
     class Meta:
         unique_together = [

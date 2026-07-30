@@ -21,3 +21,7 @@ export const SPACE_SITE_KEYWORDS =
   "software development, customer feedback, software, accelerate, code management, release management, project management, work items tracking, agile, scrum, kanban, collaboration";
 export const SPACE_SITE_URL = "https://biplane.dev/";
 export const SPACE_TWITTER_USER_NAME = "";
+
+// biplane: OUR release number — single source of truth for the fork version;
+// package.json stays at the upstream Plane version we are built on.
+export const BIPLANE_VERSION = "1.0.0";

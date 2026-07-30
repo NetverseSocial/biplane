@@ -63,6 +63,12 @@ export const SetPasswordForm = observer(function SetPasswordForm() {
   const { t } = useTranslation();
   // hooks
   const { data: user, handleSetPassword } = useUser();
+  // biplane: server-authoritative strength with explicit override (parity with
+  // sign-up/change/reset).
+  const [acceptWeakPassword, setAcceptWeakPassword] = useState(false);
+  // The SERVER (zxcvbn) is the authority — a rejection must surface the override
+  // even when the frontend heuristic thought the password was fine (Password1!).
+  const [serverRejectedWeak, setServerRejectedWeak] = useState(false);
 
   useEffect(() => {
     if (csrfToken === undefined)
@@ -78,20 +84,26 @@ export const SetPasswordForm = observer(function SetPasswordForm() {
   const isButtonDisabled = useMemo(
     () =>
       !!passwordFormData.password &&
-      getPasswordStrength(passwordFormData.password) === E_PASSWORD_STRENGTH.STRENGTH_VALID &&
+      (acceptWeakPassword || getPasswordStrength(passwordFormData.password) === E_PASSWORD_STRENGTH.STRENGTH_VALID) &&
       passwordFormData.password === passwordFormData.confirm_password
         ? false
         : true,
-    [passwordFormData]
+    [passwordFormData, acceptWeakPassword]
   );
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     try {
       e.preventDefault();
       if (!csrfToken) throw new Error("csrf token not found");
-      await handleSetPassword(csrfToken, { password: passwordFormData.password });
+      await handleSetPassword(csrfToken, {
+        password: passwordFormData.password,
+        ...(acceptWeakPassword && { accept_weak_password: true }),
+      });
       router.push("/");
     } catch (error: unknown) {
+      const errAny = error as { error_code?: string | number; error_message?: string };
+      if (String(errAny?.error_code) === "5020" || errAny?.error_message === "INVALID_PASSWORD")
+        setServerRejectedWeak(true);
       let message = undefined;
       if (error instanceof Error) {
         const err = error as Error & { error?: string };
@@ -198,6 +210,18 @@ export const SetPasswordForm = observer(function SetPasswordForm() {
               <span className="text-13 text-danger-primary">{t("auth.common.password.errors.match")}</span>
             )}
         </div>
+        {(serverRejectedWeak ||
+          (passwordFormData.password.length > 0 &&
+            getPasswordStrength(passwordFormData.password) !== E_PASSWORD_STRENGTH.STRENGTH_VALID)) && (
+          <label className="flex cursor-pointer items-center gap-2 text-13 text-tertiary">
+            <input
+              type="checkbox"
+              checked={acceptWeakPassword}
+              onChange={() => setAcceptWeakPassword((prev) => !prev)}
+            />
+            Use this password anyway — I understand it may be easy to guess
+          </label>
+        )}
         <Button type="submit" variant="primary" className="w-full" size="xl" disabled={isButtonDisabled}>
           {t("common.continue")}
         </Button>

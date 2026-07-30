@@ -196,6 +196,7 @@ export function InstanceSetupForm() {
             onError={() => setIsSubmitting(false)}
           >
             <input type="hidden" name="csrfmiddlewaretoken" value={csrfToken} />
+            <input type="hidden" name="user_timezone" value={Intl.DateTimeFormat().resolvedOptions().timeZone} />
             <input type="hidden" name="is_telemetry_enabled" value={formData.is_telemetry_enabled ? "True" : "False"} />
             {acceptWeakPassword && <input type="hidden" name="accept_weak_password" value="True" />}
 

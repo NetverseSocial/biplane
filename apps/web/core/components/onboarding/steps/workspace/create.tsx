@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
 import { Controller, useForm } from "react-hook-form";
 import { CircleCheck } from "lucide-react";
@@ -19,7 +19,7 @@ import { cn, validateWorkspaceName, validateSlug } from "@plane/utils";
 // hooks
 import { useInstance } from "@/hooks/store/use-instance";
 import { useWorkspace } from "@/hooks/store/use-workspace";
-import { useUserProfile, useUserSettings } from "@/hooks/store/user";
+import { useUser, useUserProfile, useUserSettings } from "@/hooks/store/user";
 // services
 import { WorkspaceService } from "@/services/workspace.service";
 // local components
@@ -48,6 +48,7 @@ export const WorkspaceCreateStep = observer(function WorkspaceCreateStep({
   // store hooks
   const { config } = useInstance();
   const { updateUserProfile } = useUserProfile();
+  const { data: currentUser } = useUser();
   const { fetchCurrentUserSettings } = useUserSettings();
   const { createWorkspace, fetchWorkspaces } = useWorkspace();
 
@@ -67,6 +68,43 @@ export const WorkspaceCreateStep = observer(function WorkspaceCreateStep({
     },
     mode: "onChange",
   });
+
+  // biplane: the sign-up form collects a company name and hands it over via
+  // sessionStorage (the sign-up POST redirects). Consume ONCE and only for the
+  // user it was stored for — stale state from a failed sign-up must not leak
+  // into a different account's onboarding.
+  useEffect(() => {
+    // Wait for the user to load, VALIDATE the binding, and only then consume —
+    // removing before validating destroyed the legitimate handoff on ordinary
+    // first-mount timing (Sable RC 3029 / Morrow RC 3028).
+    const email = currentUser?.email;
+    if (!email) return;
+    const raw = sessionStorage.getItem("bp_company_name");
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw);
+      if (!parsed.company || (parsed.email ?? "").toLowerCase() !== email.toLowerCase()) {
+        // Not ours — clear it rather than leaving it inert for the tab lifetime.
+        sessionStorage.removeItem("bp_company_name");
+        return;
+      }
+      sessionStorage.removeItem("bp_company_name");
+      setValue("name", parsed.company, { shouldValidate: true });
+      setValue(
+        "slug",
+        parsed.company
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, ""),
+        {
+          shouldValidate: true,
+        }
+      );
+    } catch {
+      sessionStorage.removeItem("bp_company_name"); // garbled legacy value
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser?.email]);
 
   const handleCreateWorkspace = async (formData: IWorkspace) => {
     if (isSubmitting) return;

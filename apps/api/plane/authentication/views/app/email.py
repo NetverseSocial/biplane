@@ -187,6 +187,40 @@ class SignUpAuthEndpoint(View):
             )
             return HttpResponseRedirect(url)
 
+        # biplane: names are collected on the sign-up form — VALIDATE server-side
+        # (required first name; letters/spaces/'’‘.- only; bounded) and reject with a
+        # clean 4xx redirect rather than silently canonicalizing what gets stored.
+        def _name_error(value, required):
+            value = str(value or "").strip()
+            if not value:
+                return "REQUIRED_FIRST_NAME_SIGN_UP" if required else None
+            if len(value) > 150:
+                return "INVALID_NAME_SIGN_UP"
+            for ch in value:
+                # Plain space ONLY — Python's isspace() is True for NEL (U+0085) and
+                # the Unicode line/paragraph separators, which are exactly the
+                # controls this must reject (Sable RC 3029).
+                if not (ch.isalpha() or ch == " " or ch in "'’‘.-"):
+                    return "INVALID_NAME_SIGN_UP"
+            return None
+
+        name_error = _name_error(request.POST.get("first_name"), required=True) or _name_error(
+            request.POST.get("last_name"), required=False
+        )
+        if name_error:
+            exc = AuthenticationException(
+                error_code=AUTHENTICATION_ERROR_CODES[name_error],
+                error_message=name_error,
+                payload={"email": str(email)},
+            )
+            params = exc.get_error_dict()
+            url = get_safe_redirect_url(
+                base_url=base_host(request=request, is_app=True),
+                next_path=next_path,
+                params=params,
+            )
+            return HttpResponseRedirect(url)
+
         # Existing user
         existing_user = User.objects.filter(email=email).first()
 
@@ -212,6 +246,11 @@ class SignUpAuthEndpoint(View):
                 code=password,
                 is_signup=True,
                 callback=post_user_auth_workflow,
+                # biplane: name collected on the sign-up form; explicit weak-password
+                # override checkbox mirrors instance setup.
+                first_name=request.POST.get("first_name", ""),
+                last_name=request.POST.get("last_name", ""),
+                accept_weak_password=request.POST.get("accept_weak_password") == "True",
             )
             user = provider.authenticate()
             # Login the user and record his device info

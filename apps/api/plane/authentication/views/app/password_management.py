@@ -141,18 +141,24 @@ class ResetPasswordEndpoint(View):
                 )
                 return HttpResponseRedirect(url)
 
-            # Check the password complexity
-            results = zxcvbn(password)
-            if results["score"] < 3:
-                exc = AuthenticationException(
-                    error_code=AUTHENTICATION_ERROR_CODES["PASSWORD_TOO_WEAK"],
-                    error_message="PASSWORD_TOO_WEAK",
-                )
-                url = urljoin(
-                    base_host(request=request, is_app=True),
-                    "accounts/reset-password?" + urlencode(exc.get_error_dict()),
-                )
-                return HttpResponseRedirect(url)
+            # Check the password complexity — biplane: strength warns, the user
+            # decides (accept_weak_password override, parity with the other doors).
+            # The bounce URL must preserve uidb64/token or a retry is impossible.
+            if request.POST.get("accept_weak_password") != "True":
+                results = zxcvbn(password)
+                if results["score"] < 3:
+                    exc = AuthenticationException(
+                        error_code=AUTHENTICATION_ERROR_CODES["PASSWORD_TOO_WEAK"],
+                        error_message="PASSWORD_TOO_WEAK",
+                    )
+                    params = exc.get_error_dict()
+                    params["uidb64"] = uidb64
+                    params["token"] = token
+                    url = urljoin(
+                        base_host(request=request, is_app=True),
+                        "accounts/reset-password?" + urlencode(params),
+                    )
+                    return HttpResponseRedirect(url)
 
             # set_password also hashes the password that the user will get
             user.set_password(password)

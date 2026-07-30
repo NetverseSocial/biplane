@@ -45,6 +45,10 @@ export const ResetPasswordForm = observer(function ResetPasswordForm() {
   const searchParams = useSearchParams();
   const uidb64 = searchParams.get("uidb64");
   const token = searchParams.get("token");
+  // biplane: server is the strength authority — after a PASSWORD_TOO_WEAK bounce
+  // (params preserved by the endpoint) the user may explicitly override.
+  const bouncedWeak = searchParams.get("error_message") === "PASSWORD_TOO_WEAK";
+  const [acceptWeakPassword, setAcceptWeakPassword] = useState(false);
   const email = searchParams.get("email");
   const error_code = searchParams.get("error_code");
   // states
@@ -77,11 +81,11 @@ export const ResetPasswordForm = observer(function ResetPasswordForm() {
   const isButtonDisabled = useMemo(
     () =>
       !!resetFormData.password &&
-      getPasswordStrength(resetFormData.password) === E_PASSWORD_STRENGTH.STRENGTH_VALID &&
+      (acceptWeakPassword || getPasswordStrength(resetFormData.password) === E_PASSWORD_STRENGTH.STRENGTH_VALID) &&
       resetFormData.password === resetFormData.confirm_password
         ? false
         : true,
-    [resetFormData]
+    [resetFormData, acceptWeakPassword]
   );
 
   useEffect(() => {
@@ -110,6 +114,7 @@ export const ResetPasswordForm = observer(function ResetPasswordForm() {
         action={`${API_BASE_URL}/auth/reset-password/${uidb64?.toString()}/${token?.toString()}/`}
       >
         <input type="hidden" name="csrfmiddlewaretoken" value={csrfToken} />
+        {acceptWeakPassword && <input type="hidden" name="accept_weak_password" value="True" />}
         <div className="space-y-1">
           <label className="text-13 font-medium text-tertiary" htmlFor="email">
             {t("auth.common.email.label")}
@@ -195,6 +200,18 @@ export const ResetPasswordForm = observer(function ResetPasswordForm() {
               <span className="text-13 text-danger-primary">{t("auth.common.password.errors.match")}</span>
             )}
         </div>
+        {(bouncedWeak ||
+          (resetFormData.password.length > 0 &&
+            getPasswordStrength(resetFormData.password) !== E_PASSWORD_STRENGTH.STRENGTH_VALID)) && (
+          <label className="flex cursor-pointer items-center gap-2 text-13 text-tertiary">
+            <input
+              type="checkbox"
+              checked={acceptWeakPassword}
+              onChange={() => setAcceptWeakPassword((prev) => !prev)}
+            />
+            Use this password anyway — I understand it may be easy to guess
+          </label>
+        )}
         <Button type="submit" variant="primary" className="w-full" size="xl" disabled={isButtonDisabled}>
           {t("auth.common.password.submit")}
         </Button>

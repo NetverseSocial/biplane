@@ -73,7 +73,9 @@ export function AuthHeaderBase(props: TAuthHeaderBase) {
       <PageHead title={pageTitle + " - Biplane"} />
       <div className="sticky top-0 flex w-full flex-shrink-0 items-center justify-between gap-6">
         <Link href="/">
-          <PlaneLockup height={28} width={133} className="text-primary" />
+          {/* biplane: the mark loses its wings below ~40px and the wordmark was timid —
+              John's call (7/29): render the lockup larger on auth/onboarding surfaces. */}
+          <PlaneLockup height={44} width={209} className="text-primary" />
         </Link>
         {additionalAction}
       </div>

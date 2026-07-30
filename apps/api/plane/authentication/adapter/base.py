@@ -89,6 +89,10 @@ class Adapter:
 
     def validate_password(self, email):
         """Validate password strength"""
+        # biplane: strength is a warning, not a wall — providers may carry an explicit
+        # user override (the "use this password anyway" checkbox).
+        if getattr(self, "accept_weak_password", False):
+            return
         results = zxcvbn(self.code)
         if results["score"] < 3:
             self.logger.warning("Password is not strong enough")
