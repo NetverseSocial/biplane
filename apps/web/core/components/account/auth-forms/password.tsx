@@ -5,6 +5,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { observer } from "mobx-react";
 import Link from "next/link";
 // icons
@@ -72,8 +73,17 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
   const [isRetryPasswordInputFocused, setIsRetryPasswordInputFocused] = useState(false);
   const [isBannerMessage, setBannerMessage] = useState(false);
   // biplane: strength is a warning, not a wall — after the banner, the user may
-  // explicitly proceed with their password (mirrors instance setup).
+  // explicitly proceed with their password (mirrors instance setup). The SERVER
+  // (zxcvbn) is the authority: a PASSWORD_TOO_WEAK bounce must surface the banner
+  // and checkbox even when the frontend heuristic thought the password was fine
+  // (witness: Password1! — frontend-valid, zxcvbn score 1).
   const [acceptWeakPassword, setAcceptWeakPassword] = useState(false);
+  const bounceParams = useSearchParams();
+  useEffect(() => {
+    if (mode === EAuthModes.SIGN_UP && bounceParams?.get("error_message") === "PASSWORD_TOO_WEAK")
+      setBannerMessage(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleShowPassword = (key: keyof typeof showPassword) =>
     setShowPassword((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -186,7 +196,12 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
             // biplane: hand the company name to the onboarding workspace step —
             // the sign-up POST redirects, so sessionStorage is the carrier.
             if (mode === EAuthModes.SIGN_UP && passwordFormData.company_name?.trim())
-              sessionStorage.setItem("bp_company_name", passwordFormData.company_name.trim());
+              // Bound to the signing-up EMAIL — a failed sign-up must never leak
+              // user A's company into user B's onboarding.
+              sessionStorage.setItem(
+                "bp_company_name",
+                JSON.stringify({ email: passwordFormData.email, company: passwordFormData.company_name.trim() })
+              );
             setIsSubmitting(true);
             if (formRef.current) formRef.current.submit(); // Manually submit the form if the condition is met
           } else {

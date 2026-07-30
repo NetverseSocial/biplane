@@ -70,10 +70,14 @@ export const SecurityProfileSettings = observer(function SecurityProfileSettings
   const { t } = useTranslation();
 
   const isNewPasswordSameAsOldPassword = oldPassword !== "" && password !== "" && password === oldPassword;
-  // biplane: strength warns, the user decides — the override unlocks the change
-  // (server accepts accept_weak_password; parity with sign-up and instance setup).
+  // biplane: strength warns, the user decides — and the SERVER (zxcvbn) is the
+  // authority. The frontend heuristic can call a password fine (Password1!) that
+  // zxcvbn rejects, so the checkbox must also appear after a server rejection.
   const [acceptWeakPassword, setAcceptWeakPassword] = useState(false);
-  const isWeakPassword = password.trim() !== "" && getPasswordStrength(password) != E_PASSWORD_STRENGTH.STRENGTH_VALID;
+  const [serverRejectedWeak, setServerRejectedWeak] = useState(false);
+  const isWeakPassword =
+    serverRejectedWeak ||
+    (password.trim() !== "" && getPasswordStrength(password) != E_PASSWORD_STRENGTH.STRENGTH_VALID);
 
   const handleShowPassword = (key: keyof typeof showPassword) =>
     setShowPassword((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -98,8 +102,9 @@ export const SecurityProfileSettings = observer(function SecurityProfileSettings
         message: t("auth.common.password.toast.change_password.success.message"),
       });
     } catch (error: unknown) {
-      const err = error as Error & { error_code?: string };
+      const err = error as Error & { error_code?: string; error_message?: string };
       const code = err.error_code?.toString();
+      if (err.error_message === "PASSWORD_TOO_WEAK") setServerRejectedWeak(true);
       const errorInfo = code ? authErrorHandler(code as EAuthenticationErrorCodes) : undefined;
 
       setToast({
@@ -118,31 +123,28 @@ export const SecurityProfileSettings = observer(function SecurityProfileSettings
     }
   };
 
+  // Server-authoritative: the client heuristic no longer blocks submission — the
+  // first attempt reaches zxcvbn, whose rejection surfaces the override.
   const isButtonDisabled =
-    (!acceptWeakPassword && getPasswordStrength(password) != E_PASSWORD_STRENGTH.STRENGTH_VALID) ||
     (oldPasswordRequired && oldPassword.trim() === "") ||
     password.trim() === "" ||
     confirmPassword.trim() === "" ||
     password !== confirmPassword ||
     password === oldPassword;
 
-  const passwordSupport = password.length > 0 &&
-    getPasswordStrength(password) != E_PASSWORD_STRENGTH.STRENGTH_VALID && (
-      <>
-        <PasswordStrengthIndicator password={password} isFocused={isPasswordInputFocused} />
-        {/* biplane: explicit override instead of a silent wall */}
-        {isWeakPassword && (
-          <label className="flex cursor-pointer items-center gap-2 pt-1 text-13 text-tertiary">
-            <input
-              type="checkbox"
-              checked={acceptWeakPassword}
-              onChange={() => setAcceptWeakPassword((prev) => !prev)}
-            />
-            Use this password anyway — I understand it may be easy to guess
-          </label>
-        )}
-      </>
-    );
+  const passwordSupport = (serverRejectedWeak ||
+    (password.length > 0 && getPasswordStrength(password) != E_PASSWORD_STRENGTH.STRENGTH_VALID)) && (
+    <>
+      <PasswordStrengthIndicator password={password} isFocused={isPasswordInputFocused} />
+      {/* biplane: explicit override instead of a silent wall */}
+      {isWeakPassword && (
+        <label className="flex cursor-pointer items-center gap-2 pt-1 text-13 text-tertiary">
+          <input type="checkbox" checked={acceptWeakPassword} onChange={() => setAcceptWeakPassword((prev) => !prev)} />
+          Use this password anyway — I understand it may be easy to guess
+        </label>
+      )}
+    </>
+  );
 
   const renderPasswordMatchError = !isRetryPasswordInputFocused || confirmPassword.length >= password.length;
 

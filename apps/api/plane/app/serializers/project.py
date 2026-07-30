@@ -40,8 +40,8 @@ class ProjectSerializer(BaseSerializer):
         project_id = self.instance.id if self.instance else None
         workspace_id = self.context["workspace_id"]
 
-        # biplane: names use their own (much looser) rule than identifiers — see model.
-        if re.match(Project.FORBIDDEN_PROJECT_NAME_CHARS_PATTERN, name):
+        # biplane: names use the shared display-text rule, not the identifier rule.
+        if not Project.is_valid_project_name(name):
             raise serializers.ValidationError(detail="PROJECT_NAME_CANNOT_CONTAIN_SPECIAL_CHARACTERS")
 
         project = Project.objects.filter(name=name, workspace_id=workspace_id)

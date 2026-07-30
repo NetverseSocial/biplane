@@ -63,6 +63,9 @@ export const SetPasswordForm = observer(function SetPasswordForm() {
   const { t } = useTranslation();
   // hooks
   const { data: user, handleSetPassword } = useUser();
+  // biplane: server-authoritative strength with explicit override (parity with
+  // sign-up/change/reset).
+  const [acceptWeakPassword, setAcceptWeakPassword] = useState(false);
 
   useEffect(() => {
     if (csrfToken === undefined)
@@ -78,7 +81,7 @@ export const SetPasswordForm = observer(function SetPasswordForm() {
   const isButtonDisabled = useMemo(
     () =>
       !!passwordFormData.password &&
-      getPasswordStrength(passwordFormData.password) === E_PASSWORD_STRENGTH.STRENGTH_VALID &&
+      (acceptWeakPassword || getPasswordStrength(passwordFormData.password) === E_PASSWORD_STRENGTH.STRENGTH_VALID) &&
       passwordFormData.password === passwordFormData.confirm_password
         ? false
         : true,
@@ -89,7 +92,10 @@ export const SetPasswordForm = observer(function SetPasswordForm() {
     try {
       e.preventDefault();
       if (!csrfToken) throw new Error("csrf token not found");
-      await handleSetPassword(csrfToken, { password: passwordFormData.password });
+      await handleSetPassword(csrfToken, {
+        password: passwordFormData.password,
+        ...(acceptWeakPassword && { accept_weak_password: true }),
+      });
       router.push("/");
     } catch (error: unknown) {
       let message = undefined;
@@ -198,6 +204,17 @@ export const SetPasswordForm = observer(function SetPasswordForm() {
               <span className="text-13 text-danger-primary">{t("auth.common.password.errors.match")}</span>
             )}
         </div>
+        {passwordFormData.password.length > 0 &&
+          getPasswordStrength(passwordFormData.password) !== E_PASSWORD_STRENGTH.STRENGTH_VALID && (
+            <label className="flex cursor-pointer items-center gap-2 text-13 text-tertiary">
+              <input
+                type="checkbox"
+                checked={acceptWeakPassword}
+                onChange={() => setAcceptWeakPassword((prev) => !prev)}
+              />
+              Use this password anyway — I understand it may be easy to guess
+            </label>
+          )}
         <Button type="submit" variant="primary" className="w-full" size="xl" disabled={isButtonDisabled}>
           {t("common.continue")}
         </Button>

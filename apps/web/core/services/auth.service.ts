@@ -39,7 +39,7 @@ export class AuthService extends APIService {
       });
   }
 
-  async setPassword(token: string, data: { password: string }): Promise<any> {
+  async setPassword(token: string, data: { password: string; accept_weak_password?: boolean }): Promise<any> {
     return this.post(`/auth/set-password/`, data, {
       headers: {
         "X-CSRFTOKEN": token,

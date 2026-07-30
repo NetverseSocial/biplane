@@ -142,8 +142,16 @@ class Project(BaseModel):
 
     FORBIDDEN_IDENTIFIER_CHARS_PATTERN = r"^.*[&+,:;$^}{*=?@#|'<>.()%!-].*$"
     # biplane: NAMES are display text, not identifiers — "TEST-MyProj" or "O'Brien & Sons"
-    # must be valid. Ban only injection-shaped characters here.
-    FORBIDDEN_PROJECT_NAME_CHARS_PATTERN = r"^.*[<>{}\[\]$^*=?@#|;].*$"
+    # must be valid. One shared validator for EVERY surface (app + public API): bans
+    # injection-shaped characters and control characters, independent of line
+    # boundaries (a regex with dot-matching was bypassable via embedded newlines).
+    FORBIDDEN_PROJECT_NAME_CHARS = frozenset("<>{}[]$^*=?@#|;")
+
+    @staticmethod
+    def is_valid_project_name(name):
+        return not any(
+            (ch in Project.FORBIDDEN_PROJECT_NAME_CHARS) or ord(ch) < 32 for ch in str(name)
+        )
 
     class Meta:
         unique_together = [

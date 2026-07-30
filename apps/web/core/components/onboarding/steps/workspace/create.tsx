@@ -19,7 +19,7 @@ import { cn, validateWorkspaceName, validateSlug } from "@plane/utils";
 // hooks
 import { useInstance } from "@/hooks/store/use-instance";
 import { useWorkspace } from "@/hooks/store/use-workspace";
-import { useUserProfile, useUserSettings } from "@/hooks/store/user";
+import { useUser, useUserProfile, useUserSettings } from "@/hooks/store/user";
 // services
 import { WorkspaceService } from "@/services/workspace.service";
 // local components
@@ -48,6 +48,7 @@ export const WorkspaceCreateStep = observer(function WorkspaceCreateStep({
   // store hooks
   const { config } = useInstance();
   const { updateUserProfile } = useUserProfile();
+  const { data: currentUser } = useUser();
   const { fetchCurrentUserSettings } = useUserSettings();
   const { createWorkspace, fetchWorkspaces } = useWorkspace();
 
@@ -69,11 +70,16 @@ export const WorkspaceCreateStep = observer(function WorkspaceCreateStep({
   });
 
   // biplane: the sign-up form collects a company name and hands it over via
-  // sessionStorage (the sign-up POST redirects) — prefill the workspace from it once.
+  // sessionStorage (the sign-up POST redirects). Consume ONCE and only for the
+  // user it was stored for — stale state from a failed sign-up must not leak
+  // into a different account's onboarding.
   useEffect(() => {
-    const company = sessionStorage.getItem("bp_company_name");
-    if (company) {
-      sessionStorage.removeItem("bp_company_name");
+    const raw = sessionStorage.getItem("bp_company_name");
+    if (!raw) return;
+    sessionStorage.removeItem("bp_company_name");
+    try {
+      const { email, company } = JSON.parse(raw);
+      if (!company || !email || email.toLowerCase() !== (currentUser?.email ?? "").toLowerCase()) return;
       setValue("name", company, { shouldValidate: true });
       setValue(
         "slug",
@@ -85,9 +91,11 @@ export const WorkspaceCreateStep = observer(function WorkspaceCreateStep({
           shouldValidate: true,
         }
       );
+    } catch {
+      // legacy/garbled value — already removed, nothing to do
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [currentUser?.email]);
 
   const handleCreateWorkspace = async (formData: IWorkspace) => {
     if (isSubmitting) return;

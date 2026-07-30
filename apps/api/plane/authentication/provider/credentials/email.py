@@ -33,9 +33,15 @@ class EmailProvider(CredentialAdapter):
         self.key = key
         self.code = code
         self.is_signup = is_signup
-        # biplane: collected on the sign-up form itself (name belongs up front)
-        self.first_name = str(first_name or "").strip()
-        self.last_name = str(last_name or "").strip()
+        # biplane: collected on the sign-up form itself (name belongs up front).
+        # Canonicalize server-side: strip control characters, bound to the User
+        # column length (150) — display fields must not be able to DataError.
+        def _clean_name(value):
+            cleaned = "".join(ch for ch in str(value or "") if ord(ch) >= 32)
+            return cleaned.strip()[:150]
+
+        self.first_name = _clean_name(first_name)
+        self.last_name = _clean_name(last_name)
         # biplane: strength is a warning, not a wall — an explicit user override
         # (checkbox on the form) skips the zxcvbn gate, mirroring instance setup.
         self.accept_weak_password = bool(accept_weak_password)
