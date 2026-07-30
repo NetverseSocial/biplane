@@ -90,9 +90,16 @@ export const WorkspaceCreateStep = observer(function WorkspaceCreateStep({
       }
       sessionStorage.removeItem("bp_company_name");
       setValue("name", parsed.company, { shouldValidate: true });
-      setValue("slug", parsed.company.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""), {
-        shouldValidate: true,
-      });
+      setValue(
+        "slug",
+        parsed.company
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, ""),
+        {
+          shouldValidate: true,
+        }
+      );
     } catch {
       sessionStorage.removeItem("bp_company_name"); // garbled legacy value
     }

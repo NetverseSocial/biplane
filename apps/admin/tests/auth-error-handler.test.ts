@@ -11,6 +11,13 @@
 //   packages/utils/src/auth.ts                 — shared copy, imported by packages
 //   apps/web/helpers/authentication.helper.tsx — app-local copy, the one the web
 //                                                sign-up flow actually resolves
+// FOLLOW-UP TICKET (task #43 in the 7of9 tracker): collapse the duplication —
+// FOUR copies exist (packages/utils, apps/web/helpers, apps/space/helpers,
+// apps/admin auth-helpers); space/admin carry no PASSWORD_TOO_WEAK, which may be
+// correct per-copy. TRIGGER, per Sable RC 3033: the NEXT change to EITHER handler
+// collapses them and deletes the source-level half of this test. Without a trigger
+// a ticket becomes never, and this bridge outlives everyone who remembers why.
+//
 // The FIRST version of this test only guarded the shared copy — the one with no
 // consumer on the production path — so deleting the entry from the app-local list
 // would have kept it green. It now asserts BOTH, and the app-local one is asserted
