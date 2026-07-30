@@ -80,6 +80,11 @@ export const ProfileSetupStep = observer(function ProfileSetupStep({ handleStepC
   // derived values
   const userAvatar = watch("avatar_url");
 
+  // biplane: strength warns, the user decides — parity with every other door.
+  const [acceptWeakPassword, setAcceptWeakPassword] = useState(false);
+  // The SERVER is the strength authority; its rejection reveals the override.
+  const [serverRejectedWeak, setServerRejectedWeak] = useState(false);
+
   const handleSetPassword = async (password: string) => {
     // (accept_weak_password rides along when the user opted in below)
     const token = await authService.requestCSRFToken().then((data) => data?.csrf_token);
@@ -143,10 +148,6 @@ export const ProfileSetupStep = observer(function ProfileSetupStep({ handleStepC
   const currentPassword = watch("password") || undefined;
   const currentConfirmPassword = watch("confirm_password") || undefined;
 
-  // biplane: strength warns, the user decides — parity with every other door.
-  const [acceptWeakPassword, setAcceptWeakPassword] = useState(false);
-  // The SERVER is the strength authority; its rejection reveals the override.
-  const [serverRejectedWeak, setServerRejectedWeak] = useState(false);
   const isWeakTypedPassword =
     !!currentPassword && getPasswordStrength(currentPassword) !== E_PASSWORD_STRENGTH.STRENGTH_VALID;
   const isValidPassword = useMemo(() => {

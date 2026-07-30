@@ -4,19 +4,16 @@
  * See the LICENSE file for details.
  */
 
-// biplane: PRODUCER/CONSUMER seam guards (Morrow RC 3031/3035, Sable RC 3032/3036).
+// biplane: PRODUCER/CONSUMER seam guards (Morrow RC 3031/3035/3038, Sable RC 3032/3036).
 //
-// Four defects in this PR shared one shape — code that is correct in its own file
-// but unreachable from the live path:
-//   1. set-door repairs in SetPasswordForm, which the route did not render
-//   2. a membership test asserting the authErrorHandler copy nothing resolves
-//   3. a review claim reasoning about that same unreached copy
-//   4. override state whose setter was never called (no control produced it)
-// Each looked right in isolation and in the diff. These assertions are the cheap
-// mechanical counter: for a new component, WHAT IMPORTS IT; for new state, WHAT
-// CALLS THE SETTER. Source-level by design — these files cannot be imported into a
-// node harness, and the wrong-component wiring recurred INSIDE this PR after being
-// fixed once (Sable RC 3036 asked for exactly this shape).
+// Five defects in this PR shared one shape — code correct in its own file but
+// unreachable from the live path: set-door repairs in a component nothing rendered;
+// a membership test on the authErrorHandler copy nothing resolves; a review claim
+// about that same copy; override state whose setter was never called; and then THIS
+// FILE'S first version, which asserted that NAMES appear rather than that the
+// load-bearing EXPRESSIONS do — Morrow RC 3038 killed it with four mutations that
+// each left it 8/8 green. Presence-of-identifier is not a guard; every assertion
+// below pins a complete expression, and each is answerable to a named mutation.
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -24,48 +21,95 @@ import { describe, expect, it } from "vitest";
 const readRepoFile = (relative: string) =>
   readFileSync(fileURLToPath(new URL(`../../../${relative}`, import.meta.url)), "utf8");
 
+// Collapse whitespace so assertions survive formatter line-wrapping but still
+// require the whole expression, not just its identifiers.
+const flat = (relative: string) => readRepoFile(relative).replace(/\s+/g, " ");
+
+const PATHS = {
+  setPasswordPage: "apps/web/app/(all)/accounts/set-password/page.tsx",
+  onboardingParent: "apps/web/core/components/onboarding/steps/profile/root.tsx",
+  onboardingChild: "apps/web/core/components/onboarding/steps/profile/set-password.tsx",
+  userStore: "apps/web/core/store/user/index.ts",
+  signUpDoor: "apps/web/core/components/account/auth-forms/password.tsx",
+  setDoor: "apps/web/core/components/account/auth-forms/set-password.tsx",
+  resetDoor: "apps/web/core/components/account/auth-forms/reset-password.tsx",
+  changeDoor: "apps/web/core/components/settings/profile/content/pages/security.tsx",
+};
+
 describe("set-password route renders its own form (RC 3031)", () => {
-  const page = () => readRepoFile("apps/web/app/(all)/accounts/set-password/page.tsx");
-
-  it("imports and renders SetPasswordForm", () => {
-    const source = page();
-    expect(source).toContain("SetPasswordForm");
-    expect(source).toMatch(/<SetPasswordForm\s*\/>/);
-  });
-
-  it("does NOT render ResetPasswordForm — it has no uidb64/token and would post undefined/undefined", () => {
-    expect(page()).not.toMatch(/<ResetPasswordForm\s*\/>/);
+  it("imports and renders SetPasswordForm, never ResetPasswordForm", () => {
+    const source = flat(PATHS.setPasswordPage);
+    expect(source).toMatch(/<SetPasswordForm \/>/);
+    expect(source).not.toMatch(/<ResetPasswordForm \/>/);
   });
 });
 
-describe("weak-password override has a producer on every door (RC 3035)", () => {
-  const doors: [string, string][] = [
-    ["sign-up", "apps/web/core/components/account/auth-forms/password.tsx"],
-    ["set-password", "apps/web/core/components/account/auth-forms/set-password.tsx"],
-    ["reset-password", "apps/web/core/components/account/auth-forms/reset-password.tsx"],
-    ["profile change", "apps/web/core/components/settings/profile/content/pages/security.tsx"],
-  ];
-
-  it.each(doors)("%s door: setAcceptWeakPassword is actually called", (_door, path) => {
-    const source = readRepoFile(path);
-    expect(source).toContain("acceptWeakPassword");
-    // A setter that appears ONLY on its useState line is dead state.
-    const setterCalls = source.match(/setAcceptWeakPassword\(/g) ?? [];
-    expect(setterCalls.length).toBeGreaterThan(0);
+describe("the override flag reaches the server on every door (RC 3038 mutation bar)", () => {
+  // M1: drop the onboarding payload spread.
+  it("onboarding setPassword call carries accept_weak_password", () => {
+    expect(flat(PATHS.onboardingParent)).toContain(
+      "authService.setPassword(token, { password, ...(acceptWeakPassword && { accept_weak_password: true }) })"
+    );
   });
 
-  it("onboarding door: the parent passes a producer to the child control", () => {
-    const parent = readRepoFile("apps/web/core/components/onboarding/steps/profile/root.tsx");
-    expect(parent).toContain("onAcceptWeakPasswordChange={setAcceptWeakPassword}");
-    const child = readRepoFile("apps/web/core/components/onboarding/steps/profile/set-password.tsx");
-    expect(child).toContain("onAcceptWeakPasswordChange");
-    expect(child).toContain("Use this password anyway");
+  // M2: restore the store's {password}-only forwarding.
+  it("user store forwards the WHOLE payload to setPassword", () => {
+    const source = flat(PATHS.userStore);
+    expect(source).toContain("this.authService.setPassword(csrfToken, data)");
+    expect(source).not.toContain("this.authService.setPassword(csrfToken, { password: data.password })");
   });
 
-  it("onboarding submit does not advance the step when the submit failed", () => {
-    const parent = readRepoFile("apps/web/core/components/onboarding/steps/profile/root.tsx");
-    // A swallowed rejection plus an unconditional advance leaves the account with no
-    // password and no way back (Sable RC 3036 composition).
-    expect(parent).toMatch(/if \(!succeeded\) return;/);
+  // The set/reset/change doors must each SEND the flag, not merely hold state.
+  it("set-password door sends the flag", () => {
+    expect(flat(PATHS.setDoor)).toContain("...(acceptWeakPassword && { accept_weak_password: true })");
+  });
+
+  it("reset-password door posts the flag as a form field", () => {
+    expect(flat(PATHS.resetDoor)).toMatch(
+      /\{acceptWeakPassword && <input type="hidden" name="accept_weak_password" value="True" \/>\}/
+    );
+  });
+
+  it("sign-up door posts the flag as a form field", () => {
+    expect(flat(PATHS.signUpDoor)).toMatch(/name="accept_weak_password" value="True"/);
+  });
+
+  it("profile-change door sends the flag", () => {
+    expect(flat(PATHS.changeDoor)).toContain("...(acceptWeakPassword && { accept_weak_password: true })");
+  });
+});
+
+describe("the override has a reachable control on every door (RC 3035)", () => {
+  // M4: child checkbox callback becomes a no-op.
+  it("onboarding child's checkbox invokes the callback with the toggled value", () => {
+    const source = flat(PATHS.onboardingChild);
+    expect(source).toContain("onChange={() => onAcceptWeakPasswordChange(!acceptWeakPassword)}");
+    expect(source).toContain("checked={acceptWeakPassword}");
+  });
+
+  it("onboarding parent supplies the producer", () => {
+    expect(flat(PATHS.onboardingParent)).toContain("onAcceptWeakPasswordChange={setAcceptWeakPassword}");
+  });
+
+  it.each([
+    ["sign-up", PATHS.signUpDoor],
+    ["set-password", PATHS.setDoor],
+    ["reset-password", PATHS.resetDoor],
+    ["profile change", PATHS.changeDoor],
+  ])("%s door's checkbox actually toggles the state", (_door, path) => {
+    // A setter named but never invoked is dead state (the RC 3035 defect).
+    expect(flat(path)).toMatch(/setAcceptWeakPassword\((?:\(prev\) => !prev|!acceptWeakPassword|true|false)\)/);
+  });
+});
+
+describe("onboarding cannot advance past a failed submit (RC 3036)", () => {
+  // M3: catch returns true.
+  it("reports failure from the catch and returns early on it", () => {
+    const source = flat(PATHS.onboardingParent);
+    expect(source).toContain("return false; } };"); // the catch's terminal statement
+    expect(source).toContain("const succeeded = await handleSubmitUserDetail(formData);");
+    expect(source).toContain("if (!succeeded) return;");
+    // The success path must still report true, or the guard blocks everything.
+    expect(source).toContain("return true; } catch");
   });
 });
