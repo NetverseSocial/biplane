@@ -33,6 +33,11 @@ class TestSharedProjectNameValidator:
         assert not Project.is_valid_project_name("ls\u2028name")
         assert not Project.is_valid_project_name("ps\u2029name")
 
+    def test_non_string_names_rejected_outright(self):
+        # RC 3031: str() coercion validated the REPR of junk types.
+        for bad in ({"a": 1}, 123, None, ["x"], b"bytes"):
+            assert not Project.is_valid_project_name(bad), repr(bad)
+
 
 @pytest.mark.contract
 class TestNamePolicyBothSurfacesBothDirections:

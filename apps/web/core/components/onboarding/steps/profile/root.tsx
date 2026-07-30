@@ -81,8 +81,9 @@ export const ProfileSetupStep = observer(function ProfileSetupStep({ handleStepC
   const userAvatar = watch("avatar_url");
 
   const handleSetPassword = async (password: string) => {
+    // (accept_weak_password rides along when the user opted in below)
     const token = await authService.requestCSRFToken().then((data) => data?.csrf_token);
-    await authService.setPassword(token, { password });
+    await authService.setPassword(token, { password, ...(acceptWeakPassword && { accept_weak_password: true }) });
   };
 
   const handleSubmitUserDetail = async (formData: TProfileSetupFormValues) => {
@@ -124,11 +125,13 @@ export const ProfileSetupStep = observer(function ProfileSetupStep({ handleStepC
   const currentPassword = watch("password") || undefined;
   const currentConfirmPassword = watch("confirm_password") || undefined;
 
+  // biplane: strength warns, the user decides — parity with every other door.
+  const [acceptWeakPassword, setAcceptWeakPassword] = useState(false);
   const isValidPassword = useMemo(() => {
     if (currentPassword) {
       if (
         currentPassword === currentConfirmPassword &&
-        getPasswordStrength(currentPassword) === E_PASSWORD_STRENGTH.STRENGTH_VALID
+        (acceptWeakPassword || getPasswordStrength(currentPassword) === E_PASSWORD_STRENGTH.STRENGTH_VALID)
       ) {
         return true;
       } else {
@@ -137,7 +140,7 @@ export const ProfileSetupStep = observer(function ProfileSetupStep({ handleStepC
     } else {
       return true;
     }
-  }, [currentPassword, currentConfirmPassword]);
+  }, [currentPassword, currentConfirmPassword, acceptWeakPassword]);
 
   // Check for all available fields validation and if password field is available, then checks for password validation (strength + confirmation).
   // Also handles the condition for optional password i.e if password field is optional it only checks for above validation if it's not empty.

@@ -83,19 +83,16 @@ export const WorkspaceCreateStep = observer(function WorkspaceCreateStep({
     if (!raw) return;
     try {
       const parsed = JSON.parse(raw);
-      if (!parsed.company || (parsed.email ?? "").toLowerCase() !== email.toLowerCase()) return;
+      if (!parsed.company || (parsed.email ?? "").toLowerCase() !== email.toLowerCase()) {
+        // Not ours — clear it rather than leaving it inert for the tab lifetime.
+        sessionStorage.removeItem("bp_company_name");
+        return;
+      }
       sessionStorage.removeItem("bp_company_name");
       setValue("name", parsed.company, { shouldValidate: true });
-      setValue(
-        "slug",
-        parsed.company
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/^-+|-+$/g, ""),
-        {
-          shouldValidate: true,
-        }
-      );
+      setValue("slug", parsed.company.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""), {
+        shouldValidate: true,
+      });
     } catch {
       sessionStorage.removeItem("bp_company_name"); // garbled legacy value
     }

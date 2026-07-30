@@ -149,6 +149,10 @@ class Project(BaseModel):
 
     @staticmethod
     def is_valid_project_name(name):
+        # Non-strings are invalid outright — str() coercion would validate the
+        # repr of a dict/int instead of rejecting the type (Morrow RC 3031).
+        if not isinstance(name, str):
+            return False
         # C0 controls, DEL, C1 controls, and the Unicode line/paragraph separators
         # (U+2028/U+2029) are all rejected alongside the forbidden charset.
         return not any(
@@ -156,7 +160,7 @@ class Project(BaseModel):
             or ord(ch) < 32
             or 0x7F <= ord(ch) <= 0x9F
             or ch in "\u2028\u2029"
-            for ch in str(name)
+            for ch in name
         )
 
     class Meta:

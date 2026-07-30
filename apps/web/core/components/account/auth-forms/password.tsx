@@ -195,6 +195,11 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
           if (isPasswordValid) {
             // biplane: hand the company name to the onboarding workspace step —
             // the sign-up POST redirects, so sessionStorage is the carrier.
+            if (mode === EAuthModes.SIGN_IN) {
+              // A sign-in ends any pending sign-up handoff — clear the carrier so
+              // an abandoned sign-up's company can never linger into a later flow.
+              sessionStorage.removeItem("bp_company_name");
+            }
             if (mode === EAuthModes.SIGN_UP) {
               // Overwrite on EVERY submit: a blank company on a retry must clear the
               // previous attempt's value, never leave it stale (Morrow RC 3028).
