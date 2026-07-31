@@ -5,6 +5,7 @@
 # Python imports
 import os
 import json
+import re
 import time
 import uuid
 from typing import Dict
@@ -15,6 +16,7 @@ from datetime import timedelta
 from django.conf import settings
 from django.utils import timezone
 from django.contrib.auth.hashers import make_password
+from django.db import transaction
 
 # Third party imports
 from celery import shared_task
@@ -66,6 +68,110 @@ def read_seed_file(filename):
     except json.JSONDecodeError:
         logger.error(f"Error decoding JSON from {filename}")
         return None
+
+
+# --- guide asset seeding (design record: PR #9 comments 9737-9741) ---
+GUIDE_SEED_ASSETS = ("31", "32", "33", "41")
+_GUIDE_TOKEN_RE = re.compile(r"\{\{seed_asset:(\w+)\}\}")
+_GUIDE_COMPONENT_RE = re.compile(r"<image-component[^>]*\{\{seed_asset:\w+\}\}[^>]*>(?:</image-component>)?")
+
+
+def seed_guide_assets(workspace: Workspace, bot_user: User, project_id) -> Dict[str, str]:
+    """Upload the packaged guide screenshots as per-workspace, per-project assets.
+
+    Returns a {token -> asset id} mapping for substitution into seeded
+    description_html. The whole block runs under the workspace row lock so a
+    redelivered seeding task cannot interleave (review 9740). The mapping is
+    accumulated locally and PUBLISHED ONLY AFTER the atomic block commits —
+    a mid-loop failure must yield {} (all-or-nothing), never dangling ids
+    (Morrow/Sable, 7/30: rollback erased the rows but the dict kept the ids,
+    substituting broken references instead of degrading to text). Assets carry
+    project_id because the editor's real GET route filters on it — a
+    workspace-only asset 404s in the actual guide render.
+    """
+    if project_id is None:
+        logger.warning(
+            f"Task: workspace_seed_task -> guide asset seeding degraded for workspace {workspace.id}; "
+            f"no seed project resolved. Seed issues will render text-only."
+        )
+        return {}
+    staged: Dict[str, str] = {}
+    uploaded_keys = []
+    storage = None
+    try:
+        from plane.db.models import FileAsset
+        from plane.settings.storage import S3Storage
+
+        with transaction.atomic():
+            Workspace.objects.select_for_update().get(id=workspace.id)
+            for token in GUIDE_SEED_ASSETS:
+                name = f"seed-guide-{token}.png"
+                existing = FileAsset.objects.filter(
+                    workspace=workspace,
+                    project_id=project_id,
+                    entity_type=FileAsset.EntityTypeContext.ISSUE_DESCRIPTION,
+                    attributes__name=name,
+                ).first()
+                if existing:
+                    staged[token] = str(existing.id)
+                    continue
+                path = os.path.join(settings.SEED_DIR, "data", "assets", f"{token}.png")
+                with open(path, "rb") as f:
+                    content = f.read()
+                key = f"{workspace.id}/{uuid.uuid4().hex}-{name}"
+                storage = storage or S3Storage()
+                storage.s3_client.put_object(
+                    Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+                    Key=key,
+                    Body=content,
+                    ContentType="image/png",
+                )
+                uploaded_keys.append(key)
+                asset = FileAsset.objects.create(
+                    attributes={"name": name, "type": "image/png", "size": len(content)},
+                    asset=key,
+                    size=len(content),
+                    workspace=workspace,
+                    project_id=project_id,
+                    created_by=bot_user,
+                    entity_type=FileAsset.EntityTypeContext.ISSUE_DESCRIPTION,
+                    is_uploaded=True,
+                )
+                staged[token] = str(asset.id)
+        # The atomic block committed: the ids are real. Publish.
+        return staged
+    except Exception as e:
+        # Degrade, never fail: text-only is the correct steady state. Best-effort
+        # cleanup of already-uploaded objects (S3 is outside the DB rollback);
+        # orphans that survive cleanup are named in the single warn line.
+        orphans = []
+        if storage is not None:
+            for key in uploaded_keys:
+                try:
+                    storage.s3_client.delete_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=key)
+                except Exception:
+                    orphans.append(key)
+        logger.warning(
+            f"Task: workspace_seed_task -> guide asset seeding degraded for workspace {workspace.id}; "
+            f"seed issues will render text-only. Cause: {e}. Orphaned objects: {orphans or 'none'}"
+        )
+        return {}
+
+
+def substitute_guide_assets(description_html: str, mapping: Dict[str, str]) -> str:
+    """Replace seed-asset tokens with per-workspace asset ids; strip the whole
+    image-component for any token without an uploaded asset (degrade path)."""
+    if not description_html or "{{seed_asset:" not in description_html:
+        return description_html
+
+    def _strip_or_keep(match):
+        token_m = _GUIDE_TOKEN_RE.search(match.group(0))
+        if token_m and token_m.group(1) in mapping:
+            return match.group(0)
+        return ""
+
+    html = _GUIDE_COMPONENT_RE.sub(_strip_or_keep, description_html)
+    return _GUIDE_TOKEN_RE.sub(lambda m: mapping.get(m.group(1), ""), html)
 
 
 def create_project_and_member(workspace: Workspace, bot_user: User) -> Dict[int, uuid.UUID]:
@@ -250,6 +356,7 @@ def create_project_issues(
     cycles_map: Dict[int, uuid.UUID],
     module_map: Dict[int, uuid.UUID],
     bot_user: User,
+    guide_assets: Dict[str, str],
 ) -> None:
     """Creates issues and their associated records for each project.
 
@@ -281,6 +388,11 @@ def create_project_issues(
         state_id = issue_seed.pop("state_id")
         cycle_id = issue_seed.pop("cycle_id")
         module_ids = issue_seed.pop("module_ids")
+
+        if issue_seed.get("description_html"):
+            issue_seed["description_html"] = substitute_guide_assets(
+                issue_seed["description_html"], guide_assets
+            )
 
         issue = Issue(
             **issue_seed,
@@ -554,8 +666,14 @@ def workspace_seed(workspace_id: uuid.UUID) -> None:
         # Create project modules
         module_map = create_modules(workspace, project_map, bot_user)
 
+        # Seed the guide screenshots as per-workspace assets (before issues so
+        # their description tokens can be substituted with real asset ids)
+        # Seed project id 1 owns the guide issues (issues.json); the editor's
+        # project-scoped asset route requires assets to carry it.
+        guide_assets = seed_guide_assets(workspace, bot_user, project_map.get(1))
+
         # create project issues
-        create_project_issues(workspace, project_map, state_map, label_map, cycle_map, module_map, bot_user)
+        create_project_issues(workspace, project_map, state_map, label_map, cycle_map, module_map, bot_user, guide_assets)
 
         # create project views
         create_views(workspace, project_map, bot_user)
