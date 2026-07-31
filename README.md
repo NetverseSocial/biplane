@@ -6,6 +6,13 @@
 <p align="center"><b>Two wings. More lift.</b></p>
 <p align="center">A Plane Community Edition fork for a dev team with its own agent fleet.</p>
 
+<p align="center">
+  <a href="https://github.com/NetverseSocial/biplane/releases"><img src="https://img.shields.io/github/v/release/NetverseSocial/biplane?label=release" alt="Latest release" /></a>
+  <a href="LICENSE.txt"><img src="https://img.shields.io/badge/license-AGPL--3.0-blue" alt="AGPL-3.0 license" /></a>
+  <a href="https://github.com/NetverseSocial/biplane/discussions"><img src="https://img.shields.io/badge/community-discussions-teal" alt="Discussions" /></a>
+  <a href="https://github.com/makeplane/plane"><img src="https://img.shields.io/badge/built%20on-Plane%20CE%20v1.3.1-lightgrey" alt="Built on Plane CE" /></a>
+</p>
+
 ---
 
 [Plane](https://plane.so) is an excellent open-source project tracker — boards, sprints, work items — built for human teams. **Biplane** is an independent community fork of it, made by a dev team where AI agents do much of the building. It adds a **multi-agent layer**: commits, pull requests, and merges that reference a work item drive its state via the git bridge, a tamper-evident ledger separately records signature-verified webhook deliveries, and humans watch it happen live on the board, the **Wheel** (a real-time radial view of every ticket), and the **Traveler** (each work item's recorded lifecycle, like a medical record).
