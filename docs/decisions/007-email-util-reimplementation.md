@@ -49,6 +49,13 @@ this decision removes from the tip and from all published history.
 
 What remains is the possibility of a dispute over the replacement utility,
 whose author had seen the original. The project owner accepts this as
-negligible: the function's interface and behavior are dictated by its purpose,
-and interfaces are not protectable expression (*Google v. Oracle*, 2021). The
-worst realistic outcome is replacing one 42-line utility again.
+negligible, on three grounds. First, what was retained is only the function's
+name, signature, and observable behavior — material whose expression is largely
+dictated by its purpose, where copyright protection is thin to doubtful
+(merger and scenes a faire doctrines). Second, in *Google v. Oracle* (2021)
+the Supreme Court — assuming without deciding that the Java API declarations
+were copyrightable — held that reimplementing them was fair use; the fair-use
+case here, for one 42-line utility's interface, is far stronger than the one
+that prevailed there. (The Court did not hold interfaces unprotectable, and
+this record does not claim it did.) Third, the worst realistic outcome is
+replacing one small utility again.
