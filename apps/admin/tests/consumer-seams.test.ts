@@ -91,6 +91,15 @@ describe("the override has a reachable control on every door (RC 3035)", () => {
     expect(flat(PATHS.onboardingParent)).toContain("onAcceptWeakPasswordChange={setAcceptWeakPassword}");
   });
 
+  // Sable RC 3052: the two named unpinned greens — the server-verdict path.
+  it("parent forwards the SERVER verdict (not false, not a typed-weak proxy) to the child", () => {
+    expect(flat(PATHS.onboardingParent)).toContain("showWeakPasswordOverride={serverRejectedWeak}");
+  });
+
+  it("a weak rejection actually sets the server verdict", () => {
+    expect(flat(PATHS.onboardingParent)).toContain("if (weak) setServerRejectedWeak(true);");
+  });
+
   it.each([
     ["sign-up", PATHS.signUpDoor],
     ["set-password", PATHS.setDoor],
