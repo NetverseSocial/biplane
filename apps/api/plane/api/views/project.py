@@ -38,7 +38,7 @@ from plane.db.models import (
     ProjectPage,
 )
 from plane.bgtasks.webhook_task import model_activity, webhook_activity
-from .base import BaseAPIView
+from .base import BaseAPIView, dispatch_after_commit
 from plane.utils.host import base_host
 from plane.api.serializers import (
     ProjectSerializer,
@@ -256,7 +256,7 @@ class ProjectListCreateAPIEndpoint(BaseAPIView):
                 project = self.get_queryset().filter(pk=serializer.instance.id).first()
 
                 # Model activity
-                model_activity.delay(
+                dispatch_after_commit(model_activity,
                     model_name="project",
                     model_id=str(project.id),
                     requested_data=request.data,
@@ -439,7 +439,7 @@ class ProjectDetailAPIEndpoint(BaseAPIView):
 
                 project = self.get_queryset().filter(pk=serializer.instance.id).first()
 
-                model_activity.delay(
+                dispatch_after_commit(model_activity,
                     model_name="project",
                     model_id=str(project.id),
                     requested_data=request.data,
@@ -487,7 +487,7 @@ class ProjectDetailAPIEndpoint(BaseAPIView):
         # Delete the user favorite cycle
         UserFavorite.objects.filter(entity_type="project", entity_identifier=pk, project_id=pk).delete()
         project.delete()
-        webhook_activity.delay(
+        dispatch_after_commit(webhook_activity,
             event="project",
             verb="deleted",
             field=None,

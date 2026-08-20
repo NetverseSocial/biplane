@@ -59,7 +59,12 @@ def instance_traces():
                 span.set_attribute("instance_id", instance.instance_id)
                 span.set_attribute("instance_name", instance.instance_name)
                 span.set_attribute("current_version", instance.current_version)
-                span.set_attribute("latest_version", instance.latest_version)
+                # biplane (BIP-32): `latest_version` is now legitimately NULL —
+                # register_instance no longer writes a value it cannot support.
+                # OTel rejects a None attribute value (it warns and drops it),
+                # so send the empty string rather than let a real change in the
+                # data model surface as a library warning in the log.
+                span.set_attribute("latest_version", instance.latest_version or "")
                 span.set_attribute("is_telemetry_enabled", instance.is_telemetry_enabled)
                 span.set_attribute("is_support_required", instance.is_support_required)
                 span.set_attribute("is_setup_done", instance.is_setup_done)

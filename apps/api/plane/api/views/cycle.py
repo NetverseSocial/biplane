@@ -24,6 +24,7 @@ from rest_framework.response import Response
 from drf_spectacular.utils import OpenApiRequest, OpenApiResponse
 
 # Module imports
+from plane.api.audit import enqueue_audit
 from plane.api.serializers import (
     CycleIssueSerializer,
     CycleSerializer,
@@ -47,7 +48,7 @@ from plane.db.models import (
 )
 from plane.utils.cycle_transfer_issues import transfer_cycle_issues
 from plane.utils.host import base_host
-from .base import BaseAPIView
+from .base import BaseAPIView, dispatch_after_commit
 from plane.bgtasks.webhook_task import model_activity
 from plane.utils.openapi.decorators import cycle_docs
 from plane.utils.openapi import (
@@ -332,7 +333,7 @@ class CycleListCreateAPIEndpoint(BaseAPIView):
                     )
                 serializer.save(project_id=project_id)
                 # Send the model activity
-                model_activity.delay(
+                dispatch_after_commit(model_activity,
                     model_name="cycle",
                     model_id=str(serializer.instance.id),
                     requested_data=request.data,
@@ -538,7 +539,7 @@ class CycleDetailAPIEndpoint(BaseAPIView):
             serializer.save()
 
             # Send the model activity
-            model_activity.delay(
+            dispatch_after_commit(model_activity,
                 model_name="cycle",
                 model_id=str(serializer.instance.id),
                 requested_data=request.data,
@@ -583,7 +584,7 @@ class CycleDetailAPIEndpoint(BaseAPIView):
 
         cycle_issues = list(CycleIssue.objects.filter(cycle_id=self.kwargs.get("pk")).values_list("issue", flat=True))
 
-        issue_activity.delay(
+        enqueue_audit("issue_activity",
             type="cycle.activity.deleted",
             requested_data=json.dumps(
                 {
@@ -979,7 +980,7 @@ class CycleIssueListCreateAPIEndpoint(BaseAPIView):
         CycleIssue.objects.bulk_update(updated_records, ["cycle_id"], batch_size=100)
 
         # Capture Issue Activity
-        issue_activity.delay(
+        enqueue_audit("issue_activity",
             type="cycle.activity.created",
             requested_data=json.dumps({"cycles_list": issues}),
             actor_id=str(self.request.user.id),
@@ -1089,7 +1090,7 @@ class CycleIssueDetailAPIEndpoint(BaseAPIView):
         )
         issue_id = cycle_issue.issue_id
         cycle_issue.delete()
-        issue_activity.delay(
+        enqueue_audit("issue_activity",
             type="cycle.activity.deleted",
             requested_data=json.dumps(
                 {

@@ -29,7 +29,7 @@ import { handleCoverImageChange } from "@/helpers/cover-image.helper";
 import { useInstance } from "@/hooks/store/use-instance";
 import { useUser, useUserProfile } from "@/hooks/store/user";
 // utils
-import { validatePersonName, validateDisplayName } from "@plane/utils";
+import { normalizePersonName, validateOptionalPersonName, validatePersonName, validateDisplayName } from "@plane/utils";
 
 type TUserProfileForm = {
   avatar_url: string;
@@ -119,8 +119,8 @@ export const GeneralProfileSettingsForm = observer(function GeneralProfileSettin
   const onSubmit = async (formData: TUserProfileForm) => {
     setIsLoading(true);
     const userPayload: Partial<IUser> = {
-      first_name: formData.first_name,
-      last_name: formData.last_name,
+      first_name: normalizePersonName(formData.first_name),
+      last_name: normalizePersonName(formData.last_name),
       avatar_url: formData.avatar_url,
       display_name: formData?.display_name,
     };
@@ -302,7 +302,15 @@ export const GeneralProfileSettingsForm = observer(function GeneralProfileSettin
                   control={control}
                   name="last_name"
                   rules={{
-                    validate: validatePersonName,
+                    // biplane (BIP-21): last name is optional here — there is no
+                    // `required` rule and no asterisk — but validatePersonName("")
+                    // returns "Name is required", so an empty value failed anyway
+                    // and the field could never be left blank or cleared. Validate
+                    // only what was actually entered. Trim first: the server does
+                    // (`str(value or "").strip()`) and treats blank-after-trim as
+                    // absent, so a field holding only spaces must be absent here
+                    // too, not an error (Rowan RC 3085).
+                    validate: validateOptionalPersonName,
                   }}
                   render={({ field: { value, onChange, ref } }) => (
                     <Input

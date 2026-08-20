@@ -1,0 +1,27 @@
+# COMMENTS ARE COLUMN-0 ONLY. A space-indented '#' is a hard failure, not a
+# comment — the counter and the loop agree on this deliberately (Vex RC 3505).
+# verdict	value	note
+accept	v0.0.0	lower edge
+accept	v1.2.3	ordinary
+accept	v999999999.999999999.999999999	UPPER ACCEPTED
+refuse	v1000000000.0.0	FIRST REFUSED: 10-digit major
+refuse	v0.1000000000.0	10-digit minor
+refuse	v0.0.1000000000	10-digit patch
+refuse	v01.2.3	leading zeros must not make a second spelling
+refuse	v1.2	missing component
+refuse	v1.2.3.4	extra component
+refuse	v1.2.3-rc1	prerelease
+refuse	v1.2.3+build	build metadata
+refuse	V1.2.3	capital prefix
+refuse	1.2.3	missing prefix
+refuse		empty
+refuse	v2147483648.0.0	awk %d clamped here
+refuse	v9223372036854775808.0.0	bash arithmetic wrapped NEGATIVE here
+gt	v1.2.4	v1.2.3
+gt	v1.2.10	v1.2.9
+gt	v2.0.0	v1.9.9
+gt	v10.0.0	v1.2.3
+gt	v999999999.0.0	v999999998.0.0
+gt	v1.0.0	v0.999999999.999999999
+ngt	v1.2.3	v1.2.3
+ngt	v1.2.3	v1.2.4

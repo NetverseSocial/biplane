@@ -1,0 +1,14 @@
+# Commit-form fingerprints for the PUBLIC lineage — written at squash time
+# per docs/operations/publish-runbook.md step 3. Each entry: reason above,
+# sha256/12 of the suppressed value beside it. 2026-08-19 all values were
+# hash-compared against production configuration: disjoint.
+# upstream Plane S3-presign docstring example — value sha256/12: 1a5d44a2dca1
+6154c9ea57e31ae65f999e27fa4f881637e8cb5c:apps/api/plane/api/views/issue.py:aws-access-token:1793
+# upstream Plane community example — value sha256/12: f7c4e45e4e24
+6154c9ea57e31ae65f999e27fa4f881637e8cb5c:deployments/aio/community/README.md:generic-api-key:76
+# upstream Plane community example key — value sha256/12: 04eae10378b0
+6154c9ea57e31ae65f999e27fa4f881637e8cb5c:deployments/aio/community/variables.env:generic-api-key:29
+# upstream Plane community example key — value sha256/12: e240a293b0f5
+6154c9ea57e31ae65f999e27fa4f881637e8cb5c:deployments/aio/community/variables.env:generic-api-key:53
+# upstream Plane community example key — value sha256/12: 04eae10378b0
+6154c9ea57e31ae65f999e27fa4f881637e8cb5c:deployments/cli/community/variables.env:generic-api-key:57

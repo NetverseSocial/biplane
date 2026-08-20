@@ -19,7 +19,7 @@ from plane.bgtasks.storage_metadata_task import get_asset_object_metadata
 from plane.settings.storage import S3Storage
 from plane.utils.path_validator import sanitize_filename
 from plane.db.models import FileAsset, User, Workspace
-from plane.api.views.base import BaseAPIView
+from plane.api.views.base import BaseAPIView, dispatch_after_commit
 from plane.api.serializers import (
     UserAssetUploadSerializer,
     AssetUpdateSerializer,
@@ -213,7 +213,7 @@ class UserAssetEndpoint(BaseAPIView):
         asset.is_uploaded = True
         # get the storage metadata
         if not asset.storage_metadata:
-            get_asset_object_metadata.delay(asset_id=str(asset_id))
+            dispatch_after_commit(get_asset_object_metadata, asset_id=str(asset_id))
         # update the attributes
         asset.attributes = request.data.get("attributes", asset.attributes)
         # save the asset
@@ -369,7 +369,7 @@ class UserServerAssetEndpoint(BaseAPIView):
         asset.is_uploaded = True
         # get the storage metadata
         if not asset.storage_metadata:
-            get_asset_object_metadata.delay(asset_id=str(asset_id))
+            dispatch_after_commit(get_asset_object_metadata, asset_id=str(asset_id))
         # update the attributes
         asset.attributes = request.data.get("attributes", asset.attributes)
         # save the asset
@@ -609,7 +609,7 @@ class GenericAssetEndpoint(BaseAPIView):
 
             # Update storage metadata if not present
             if not asset.storage_metadata:
-                get_asset_object_metadata.delay(asset_id=str(asset_id))
+                dispatch_after_commit(get_asset_object_metadata, asset_id=str(asset_id))
 
             asset.save(update_fields=["is_uploaded"])
 

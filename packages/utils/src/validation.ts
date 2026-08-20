@@ -19,12 +19,40 @@
 
 /**
  * Person Name Pattern (for first_name, last_name)
- * Allows: Unicode letters (\p{L}), spaces, hyphens, apostrophes
+ * Allows: Unicode letters (\p{L}), digits (\p{N}), spaces, periods, hyphens, apostrophes
  * Use case: Accommodates international names like "José", "李明", "محمد", "Müller"
  * Blocks: Injection-risk characters and special symbols
+ *
+ * biplane (BIP-21): this MUST stay in step with the server predicate
+ * `name_error_code` in apps/api/plane/authentication/views/app/email.py.
+ * When it did not, the two disagreed in the dangerous direction: the server
+ * accepted a name the client then refused, so a fresh account could be created
+ * and immediately stranded in required onboarding, which is exactly what
+ * happened to `7of9`. Digits and the period are both server-legal, so both
+ * belong here.
+ *
+ * `\p{Nd}`, NOT `\p{N}`. `\p{N}` is every Unicode number — it admits ½ and Ⅰ,
+ * which the server refuses, so it recreated the same client/server split in the
+ * opposite direction (Rowan RC 3085). `\p{Nd}` is exactly Python's
+ * `str.isdecimal()`, which is what the server now uses, so both sides are
+ * written to one boundary rather than two that happen to overlap:
+ *
+ *   ASCII 7, Arabic-Indic ٧, Devanagari ० -> accepted by both
+ *   superscript ², vulgar ½, Roman Ⅰ      -> rejected by both
+ *
+ * The 50-character cap below is deliberately tighter than the server's 150.
+ * That divergence is safe in the way this one was not — it can only reject
+ * early, never admit something the server will later refuse.
  */
 // Curly quotes included for the same macOS smart-quote substitution as company names.
-export const PERSON_NAME_REGEX = /^[\p{L}\s'’‘-]+$/u;
+//
+// A literal space, NOT `\s`. JavaScript's `\s` matches tab, newline, and the
+// Unicode line/paragraph separators, all of which the server refuses — so with
+// `\s` this validator passed names the server would then reject, which is the
+// same class of client/server disagreement as the digit case, just pointing the
+// other way. The server comment (RC 3029) says "plain space ONLY" for exactly
+// this reason; now both say it.
+export const PERSON_NAME_REGEX = /^[\p{L}\p{Nd} '’‘.-]+$/u;
 
 /**
  * Display Name Pattern (for display_name, usernames)
@@ -58,6 +86,63 @@ export const SLUG_REGEX = /^[\p{L}\p{N}_-]+$/u;
 // =============================================================================
 
 /**
+ * biplane (BIP-21, Rowan RC 3087): the ONE blankness policy, shared with the
+ * server's `NAME_BLANK_CHARS` in
+ * apps/api/plane/authentication/views/app/email.py.
+ *
+ * "Is this optional field absent?" was previously `String.prototype.trim()`
+ * here and `str.strip()` there, and those two sets are NOT the same — they
+ * disagree in both directions:
+ *
+ *   U+0085 NEL, U+001C..U+001F  blank to Python, NOT blank to JavaScript
+ *   U+FEFF BOM                  blank to JavaScript, NOT blank to Python
+ *
+ * So a last name of a single NEL was absent to the server and a hard error on
+ * the client, which is the account-stranding direction all over again; and a
+ * lone BOM was the reverse. Neither library default is wrong, they are just
+ * different, which is exactly why this cannot be left to a library default.
+ *
+ * This set is the UNION of both, so each side treats as absent everything the
+ * other would. Adding a character here means adding it there.
+ */
+const NAME_BLANK_CHARS =
+  /[\t\n\v\f\r\u001c-\u001f\u0020\u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]/gu;
+
+/**
+ * @description True when an optional name field should be treated as not supplied.
+ * @param {string | undefined | null} name - The raw field value
+ */
+export const isBlankName = (name: string | undefined | null): boolean => {
+  if (!name) return true;
+  return name.replace(NAME_BLANK_CHARS, "") === "";
+};
+
+/**
+ * biplane (BIP-21, Morrow exact-head find on 54b88f0): strip the shared blank
+ * characters from the ENDS, and validate THAT.
+ *
+ * The bug this closes: the server stripped before validating while this side
+ * used blankness only to choose absent-versus-validate and then validated the
+ * ORIGINAL string. So `"Alice"` was accepted by the server, which saw
+ * "Alice", and rejected here, which saw a leading NEL — the account-stranding
+ * direction for the fourth time in this PR.
+ *
+ * Edge-only, deliberately. `isBlankName` above strips globally because it only
+ * asks "is there anything but blanks in here"; normalisation must not eat the
+ * space in "Mary Jane".
+ */
+const NAME_EDGE_BLANKS = new RegExp(`^(?:${NAME_BLANK_CHARS.source})+|(?:${NAME_BLANK_CHARS.source})+$`, "gu");
+
+/**
+ * @description Canonical form of a name field: the value with shared blank
+ * characters removed from both ends. Validate and store THIS, never the raw
+ * input, or the two disagree and unvalidated characters reach the database.
+ * @param {string | undefined | null} name - The raw field value
+ */
+export const normalizePersonName = (name: string | undefined | null): string =>
+  (name ?? "").replace(NAME_EDGE_BLANKS, "");
+
+/**
  * @description Validates person names (first name, last name)
  * @param {string} name - Name to validate
  * @returns {boolean | string} true if valid, error message if invalid
@@ -68,22 +153,52 @@ export const SLUG_REGEX = /^[\p{L}\p{N}_-]+$/u;
  * validatePersonName("John<script>") // returns error message
  */
 export const validatePersonName = (name: string): boolean | string => {
-  if (!name || name.trim() === "") {
+  // Validate the CANONICAL form, exactly as the server does. Validating the raw
+  // string while the server validated its stripped form is what made
+  // "<NEL>Alice" server-accepted and client-rejected.
+  const value = normalizePersonName(name);
+
+  if (value === "") {
     return "Name is required";
   }
 
-  if (name.length > 50) {
+  if (value.length > 50) {
     return "Name must be 50 characters or less";
   }
 
   // biplane: no hasInjectionRiskChars gate — it bans the apostrophe this
   // validator's own docstring promises to accept ("O'Brien"). The allowlist
   // regex already excludes every injection-risk character except ' ’ ‘.
-  if (!PERSON_NAME_REGEX.test(name)) {
-    return "Names can only contain letters, spaces, hyphens, and apostrophes";
+  if (!PERSON_NAME_REGEX.test(value)) {
+    return "Names can only contain letters, numbers, spaces, periods, hyphens, and apostrophes";
   }
 
   return true;
+};
+
+/**
+ * @description Validates an OPTIONAL person name — a last name, typically.
+ * Blank, or blank after trimming, means "not supplied" and is accepted.
+ * @param {string | undefined | null} name - Name to validate, if one was given
+ * @returns {boolean | string} true if valid or absent, error message if invalid
+ * @example
+ * validateOptionalPersonName("")      // true — absent
+ * validateOptionalPersonName("   ")   // true — absent after trim
+ * validateOptionalPersonName("Wright") // true
+ * validateOptionalPersonName("a<b")   // error message
+ *
+ * biplane (BIP-21): this exists as a real exported function, not as an inline
+ * `!value || validatePersonName(value)` in each form, for two reasons. It was
+ * written inline twice and both copies were wrong in the same way — a
+ * whitespace-only value is truthy, so it reached validatePersonName and came
+ * back "Name is required", re-imposing the requirement the wrapper existed to
+ * remove (Rowan RC 3085). And an inline lambda inside a .tsx form is not
+ * reachable by any test, so neither copy could be pinned. The trim matches the
+ * server, which does `str(value or "").strip()` and treats blank as absent.
+ */
+export const validateOptionalPersonName = (name: string | undefined | null): boolean | string => {
+  if (normalizePersonName(name) === "") return true;
+  return validatePersonName(name as string);
 };
 
 /**

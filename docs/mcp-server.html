@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BIP-24 — the Plane MCP server</title>
+<style>
+  :root{ --ink:#14191d; --soft:#4b5a65; --faint:#74838e; --bg:#f7f6f3; --panel:#fff;
+         --line:#dcdfdb; --ok:#2f6b46; --bad:#a8341f; --warn:#9a6a12; --blue:#1f5f7a; }
+  @media (prefers-color-scheme:dark){
+    :root{ --ink:#e6eaec; --soft:#a6b2ba; --faint:#7c8a94; --bg:#111619; --panel:#191f24;
+           --line:#2b343b; --ok:#7fc39a; --bad:#e08a72; --warn:#d6b45e; --blue:#6fb6d4; } }
+  body{margin:0;padding:2rem 1.2rem 4rem;background:var(--bg);color:var(--ink);
+       font-family:system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.6}
+  .wrap{max-width:54rem;margin:0 auto;display:flex;flex-direction:column;gap:1.6rem}
+  h1{font-family:ui-serif,Georgia,serif;font-weight:600;font-size:1.9rem;margin:0;line-height:1.2}
+  .lede{color:var(--soft);margin:0;max-width:42rem}
+  h2{font-family:ui-serif,Georgia,serif;font-size:1.15rem;margin:0 0 .6rem}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:1.3rem;overflow-x:auto}
+  .q{font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin:0 0 .3rem}
+  ul{margin:.2rem 0 0;padding-left:1.1rem;color:var(--soft)} li{margin-bottom:.45rem}
+  li b{color:var(--ink)}
+  .verdict{border-left:3px solid var(--bad);padding-left:1rem}
+  svg{display:block;max-width:100%;height:auto;margin:0 auto}
+  .cap{color:var(--faint);font-size:.85rem;margin:.8rem 0 0}
+</style></head><body>
+<div class="wrap">
+
+  <header>
+    <p class="q">Biplane · BIP-24 · decision brief</p>
+    <h1>The ready-made connector, and which server it trusts</h1>
+    <p class="lede">Plane publishes an official connector that lets AI agents drive a Plane board —
+    create work items, move them, comment. The question is whether we install it. The short answer
+    is not yet, and the reason is where it points by default.</p>
+  </header>
+
+  <section class="panel">
+    <h2>Where it points</h2>
+    <svg viewBox="0 0 760 330" role="img" aria-label="Diagram: the connector defaults to Plane's public cloud rather than our own server">
+      <defs>
+        <marker id="ok" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M0,0 L9,4.5 L0,9 z" fill="currentColor"/></marker>
+        <marker id="bad" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M0,0 L9,4.5 L0,9 z" fill="currentColor"/></marker>
+      </defs>
+
+      <!-- agent -->
+      <rect x="20" y="130" width="150" height="66" rx="4" fill="none" stroke="var(--line)" stroke-width="1.5"/>
+      <text x="95" y="158" text-anchor="middle" font-size="14" font-weight="600" fill="var(--ink)">Our agents</text>
+      <text x="95" y="177" text-anchor="middle" font-size="11.5" fill="var(--faint)">Aria, Vex, Morrow…</text>
+
+      <!-- connector -->
+      <rect x="245" y="120" width="180" height="86" rx="4" fill="none" stroke="var(--warn)" stroke-width="2"/>
+      <text x="335" y="148" text-anchor="middle" font-size="14" font-weight="600" fill="var(--ink)">The connector</text>
+      <text x="335" y="166" text-anchor="middle" font-size="11.5" fill="var(--faint)">Plane&#8217;s official</text>
+      <text x="335" y="182" text-anchor="middle" font-size="11.5" fill="var(--faint)">plane-mcp-server</text>
+      <text x="335" y="198" text-anchor="middle" font-size="11.5" fill="var(--warn)">30+ tools, incl. delete</text>
+
+      <line x1="172" y1="163" x2="240" y2="163" stroke="var(--soft)" stroke-width="1.8" marker-end="url(#ok)" color="var(--soft)"/>
+
+      <!-- default target: plane cloud -->
+      <g color="var(--bad)">
+        <rect x="530" y="42" width="205" height="86" rx="4" fill="none" stroke="var(--bad)" stroke-width="2"/>
+        <text x="632" y="70" text-anchor="middle" font-size="14" font-weight="600" fill="var(--bad)">Plane&#8217;s public cloud</text>
+        <text x="632" y="89" text-anchor="middle" font-size="11.5" fill="var(--faint)">someone else&#8217;s servers</text>
+        <text x="632" y="107" text-anchor="middle" font-size="11.5" fill="var(--faint)">on the open internet</text>
+        <path d="M427,146 C480,146 480,85 525,85" fill="none" stroke="var(--bad)" stroke-width="2.4" marker-end="url(#bad)"/>
+        <text x="470" y="112" text-anchor="middle" font-size="11" font-weight="700" fill="var(--bad)">DEFAULT</text>
+      </g>
+
+      <!-- desired target: our pi5 -->
+      <g color="var(--ok)">
+        <rect x="530" y="196" width="205" height="86" rx="4" fill="none" stroke="var(--ok)" stroke-width="2"/>
+        <text x="632" y="224" text-anchor="middle" font-size="14" font-weight="600" fill="var(--ok)">Our Biplane, on Pi5</text>
+        <text x="632" y="243" text-anchor="middle" font-size="11.5" fill="var(--faint)">inside the house</text>
+        <text x="632" y="261" text-anchor="middle" font-size="11.5" fill="var(--faint)">where our tickets live</text>
+        <path d="M427,180 C480,180 480,239 525,239" fill="none" stroke="var(--ok)" stroke-width="2.4"
+              stroke-dasharray="6 4" marker-end="url(#ok)"/>
+        <text x="470" y="212" text-anchor="middle" font-size="11" font-weight="700" fill="var(--ok)">ONLY IF SET</text>
+      </g>
+
+      <text x="380" y="315" text-anchor="middle" font-size="12" fill="var(--faint)">
+        Nothing stops the wrong one. A missing setting sends our board traffic to the internet.</text>
+    </svg>
+    <p class="cap">Answering your question directly: it trusts <b>Plane&#8217;s server, not ours</b>, unless
+    someone remembers to point it at Pi5. Reviewers asked that it <i>fail closed</i> — refuse to run
+    rather than quietly fall back to the public one.</p>
+  </section>
+
+  <section class="panel">
+    <h2>What the reviewers found</h2>
+    <ul>
+      <li><b>Points at the wrong server by default</b> — as above. Should refuse to start instead.</li>
+      <li><b>Writes what passes through it into its log</b> — including credentials and ticket content.</li>
+      <li><b>Fetches attachments from any address it&#8217;s handed, with no size limit</b> — a way to make
+      our own server reach inside our network, or fill a disk.</li>
+      <li><b>Exposes delete unconditionally</b> — destructive actions are not gated.</li>
+      <li><b>Outdated parts, and the build isn&#8217;t repeatable</b> — two runs can produce different software.</li>
+      <li><b>The version reviewed does not exist.</b> The installer pulls a different one, so the review
+      does not describe what we would run.</li>
+    </ul>
+  </section>
+
+  <section class="panel verdict">
+    <h2>Recommendation</h2>
+    <p style="margin:0;color:var(--soft)">Do not install it now — but this is <b>not</b> a permanent no.
+    Most of the objection is that an outside connector could reach past our own rules. Once our
+    permission checks sit underneath every write, an untrusted connector becomes tolerable, and
+    the honest move is to re-review it then. The one thing that must change regardless: review a
+    <i>pinned, exact</i> build and run that same one.</p>
+  </section>
+
+  <p class="cap">Sources: the BIP-24 ticket and the two recorded reviews (Rowan, Morrow); the third
+  review, by Vex, is outstanding. Verified against the board, not from summaries.</p>
+</div></body></html>

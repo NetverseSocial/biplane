@@ -1,10 +1,26 @@
-FROM python:3.12.10-alpine
+FROM python:3.12.10-alpine@sha256:4bbf5ef9ce4b273299d394de268ad6018e10a9375d7efc7c2ce9501a6eb6b86c
 
 # set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENV PIP_DISABLE_PIP_VERSION_CHECK=1 
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1
 ENV INSTANCE_CHANGELOG_URL=""
+
+# biplane (BIP-36, Morrow RC 3271): the installed Biplane build, BAKED IN.
+# It belongs to the IMAGE, not the deployment — an operator-supplied runtime
+# value can disagree with the code actually running, which is worse than NULL
+# because it looks authoritative. build-images.sh supplies the commit (with the
+# same clean/dirty rules as the frontend id), so backend and frontends report
+# the same build by construction. Empty default => UNKNOWN, never guessed.
+ARG BIPLANE_BUILD=""
+ENV BIPLANE_BUILD=$BIPLANE_BUILD
+# The RELEASE TAG on release builds (RC 3392 #2) — the value the update check
+# compares. Same bake-into-the-image rule as BIPLANE_BUILD (RC 3271): a
+# runtime-supplied version could disagree with the code actually running,
+# which is worse than UNKNOWN because it looks authoritative. Empty on dev
+# builds => the check reports an honest UNKNOWN.
+ARG BIPLANE_VERSION=""
+ENV BIPLANE_VERSION=$BIPLANE_VERSION
 
 # Update system packages for security
 RUN apk update && apk upgrade
@@ -20,6 +36,7 @@ RUN apk add --no-cache --upgrade \
 
 COPY requirements.txt ./
 COPY requirements ./requirements
+COPY requirements.lock ./
 RUN apk add --no-cache libffi-dev
 RUN apk add --no-cache --virtual .build-deps \
     "bash~=5.2" \
@@ -32,7 +49,8 @@ RUN apk add --no-cache --virtual .build-deps \
     "libc-dev" \
     "linux-headers" \
     && \
-    pip install -r requirements.txt --compile --no-cache-dir \
+    python requirements/lock.py check . && \
+    pip install --require-hashes -r requirements.lock --compile --no-cache-dir \
     && \
     apk del .build-deps \
     && \
@@ -44,6 +62,8 @@ COPY manage.py manage.py
 COPY plane plane/
 COPY templates templates/
 COPY package.json package.json
+# Biplane: our changelog, staged by build-images.sh (Settings → Updates serves it)
+COPY CHANGELOG.md ./
 
 RUN apk --no-cache add "bash~=5.2"
 COPY ./bin ./bin/

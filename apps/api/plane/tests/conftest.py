@@ -2,12 +2,81 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
+import os
+import sys
+
 import pytest
 from rest_framework.test import APIClient
 from pytest_django.fixtures import django_db_setup
 
 from plane.db.models import User, Workspace, WorkspaceMember
 from plane.db.models.api import APIToken
+
+_PG_IDENT_MAX_BYTES = 63  # Postgres truncates identifiers past this many BYTES, not chars.
+
+
+def isolated_test_db_name(configured_name, environ, testrun_uid, worker_id):
+    """A CROSS-CONTAINER, INVOCATION-UNIQUE, PER-WORKER test-database name (BIP-63).
+
+    Consumes xdist's OWN identifiers (Morrow RC 3649), not a per-process token:
+      * ``testrun_uid`` is shared across every worker of one invocation and is
+        unique per run — so the database is INVOCATION-owned: one run's workers
+        agree on it and no other run can reach it. (A per-process token instead
+        made each -n worker pick a different name and left the header naming none
+        of them.)
+      * ``worker_id`` (``gw0``.. under -n, ``master`` otherwise) distinguishes the
+        workers of one run, which each need their own database.
+
+    Both are ASCII and are kept WHOLE — uniqueness is load-bearing. The name is
+    bounded to the Postgres 63-BYTE identifier limit (isalnum admits multibyte
+    Unicode); only the base+label head is trimmed, on a UTF-8 boundary.
+
+    ``BIP_TEST_DB_SUFFIX`` (e.g. the agent name) is a readable label so an operator
+    can see whose database is whose; the database is dropped at session end
+    (pytest_configure), so the label is for the SIGKILL-residue case, not reuse.
+    """
+    base = configured_name or "test"
+    label = "".join(ch for ch in (environ.get("BIP_TEST_DB_SUFFIX") or "") if ch.isalnum())
+    tail = "_{}_{}".format(worker_id, testrun_uid)  # ASCII, kept whole
+    head = base if not label else "{}_{}".format(base, label)
+    budget = _PG_IDENT_MAX_BYTES - len(tail.encode("utf-8"))
+    head = head.encode("utf-8")[:budget].decode("utf-8", "ignore")  # drop a split multibyte tail
+    return head + tail
+
+
+def pytest_configure(config):
+    """Own the per-invocation database's whole lifecycle through pytest-django.
+
+    The name is deliberately unique per run, so ``--reuse-db`` (from addopts) would
+    only mean "keep a database the next run can never reach" — a leak on a shared
+    server (Aria, BIP-63). Force reuse off so pytest-django's OWN database fixture
+    creates and then DROPS it, keeping connection handling and teardown order with
+    the fixture that owns them — no separate session dropper, no global drop-loop
+    that could hit another agent's live database (Morrow RC ruling).
+    """
+    config.option.reuse_db = False
+
+
+@pytest.fixture(scope="session")
+def django_db_modify_db_settings(django_db_modify_db_settings, testrun_uid, worker_id):  # noqa: F811
+    """Point this worker at its own isolated test database (BIP-63), named from
+    xdist's shared ``testrun_uid`` + this ``worker_id``, and EMIT the exact name.
+
+    Every worker emits its OWN name (the controller cannot know them all), so a
+    hard-kill leftover is recoverable BY EXACT NAME — never a prefix sweep. The
+    write goes past pytest's capture so it surfaces in this process's log.
+
+    The ``plane`` role already has CREATEDB, so no new grants are needed (the
+    per-agent DBs Morrow and Sia already use prove the shape).
+    """
+    from django.conf import settings
+
+    default = settings.DATABASES["default"]
+    test = default.setdefault("TEST", {})
+    base = "test_{}".format(default["NAME"])
+    name = isolated_test_db_name(base, os.environ, testrun_uid, worker_id)
+    test["NAME"] = name
+    print("BIP-63 isolated test database [{}]: {}".format(worker_id, name), file=sys.__stderr__, flush=True)
 
 
 @pytest.fixture(scope="session")

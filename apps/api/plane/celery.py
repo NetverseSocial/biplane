@@ -14,6 +14,7 @@ from celery.schedules import crontab
 
 # Module imports
 from plane.settings.redis import redis_instance
+from plane.bgtasks.update_check_task import UPDATE_CHECK_INTERVAL_SECONDS
 
 # Set the default Django settings module for the 'celery' program.
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "plane.settings.production")
@@ -28,6 +29,32 @@ app.config_from_object("django.conf:settings", namespace="CELERY")
 
 app.conf.beat_schedule = {
     # Intra day recurring jobs
+    "reconcile-forgejo-bridge-deliveries": {
+        "task": "plane.bgtasks.forgejo_bridge_task.reconcile_forgejo_deliveries",
+        "schedule": crontab(minute="*"),  # every minute: bridge inbox retry (Forgejo never redelivers)
+    },
+    "poll-github-repositories": {
+        "task": "plane.bgtasks.poll_github_task.poll_github_repositories",
+        # GitHub has no inbound hole to us, so polling IS the transport for
+        # github.com repos (BIP-46 / amendment 2) — not a fallback. Every
+        # minute matches the webhook path's reconcile cadence, and costs
+        # nothing when quiet: the sweep sends conditional requests with the
+        # stored ETag, and a 304 does not count against the rate limit.
+        "schedule": crontab(minute="*"),
+    },
+    "drain-audit-outbox": {
+        "task": "plane.bgtasks.audit_outbox_task.drain_audit_outbox",
+        "schedule": crontab(minute="*"),  # every minute: durable audit delivery (BIP-18)
+    },
+    "biplane-update-check": {
+        "task": "plane.bgtasks.update_check_task.run_update_check",
+        # The scheduled update check (M5.2, BIP-41) — the only place outbound
+        # fetching happens; failures store an honest UNKNOWN rather than
+        # raising, so a quiet interval is a visible one. The cadence value
+        # lives in the task module — ONE authority; the service derives its
+        # cache TTL from the same constant.
+        "schedule": UPDATE_CHECK_INTERVAL_SECONDS,
+    },
     "check-every-five-minutes-to-send-email-notifications": {
         "task": "plane.bgtasks.email_notification_task.stack_email_notification",
         "schedule": crontab(minute="*/5"),  # Every 5 minutes

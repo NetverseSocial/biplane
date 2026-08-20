@@ -589,6 +589,13 @@ def create_issue_activity(
             issue_activities,
             epoch,
         )
+    # biplane (BIP-34): this handler is the ONLY one that writes its activity
+    # directly instead of appending to `issue_activities`, because it has to
+    # backdate created_at to the issue's own timestamp — something bulk_create
+    # cannot do. Returning it lets issue_activity() report what was actually
+    # written; without this the outbox records activity_count 0 for a delivery
+    # that produced a row. Found on a live farm deployment, not by the suite.
+    return [issue_activity]
 
 
 def update_issue_activity(
@@ -1513,6 +1520,7 @@ def issue_activity(
     notification=False,
     origin=None,
     intake=None,
+    raise_on_error=False,
 ):
     try:
         issue_activities = []
@@ -1568,8 +1576,24 @@ def issue_activity(
         }
 
         func = ACTIVITY_MAPPER.get(type)
+        if func is None and raise_on_error:
+            # biplane (BIP-18): an unknown type used to fall through, bulk
+            # create [], and return [] — indistinguishable from a legitimate
+            # zero-diff update. The outbox worker then consumed the durable
+            # row and recorded success with zero activities, so a typo in any
+            # converted call site would discard its audit permanently and
+            # silently. A KNOWN type that produces no changes is still valid;
+            # an unknown key is not.
+            raise ValueError(f"unknown audit activity type {type!r}")
+        # biplane (BIP-34): a handler may write its own activity directly
+        # rather than appending to `issue_activities` — create_issue_activity
+        # does, because it backdates created_at, which bulk_create cannot.
+        # Anything a handler returns is already SAVED and must not be fed to
+        # bulk_create; it is merged into the return value instead, so callers
+        # that need proof of audit see everything that was written.
+        directly_written = []
         if func is not None:
-            func(
+            produced = func(
                 requested_data=requested_data,
                 current_instance=current_instance,
                 issue_id=issue_id,
@@ -1579,9 +1603,12 @@ def issue_activity(
                 issue_activities=issue_activities,
                 epoch=epoch,
             )
+            if produced:
+                directly_written.extend(produced if isinstance(produced, (list, tuple)) else [produced])
 
         # Save all the values to database
-        issue_activities_created = IssueActivity.objects.bulk_create(issue_activities)
+        issue_activities_created = list(IssueActivity.objects.bulk_create(issue_activities))
+        issue_activities_created.extend(directly_written)
 
         if notification:
             notifications.delay(
@@ -1598,7 +1625,19 @@ def issue_activity(
                 current_instance=current_instance,
             )
 
-        return
+        # biplane (BIP-18): return what was actually written, so a caller that
+        # needs PROOF of audit can check it instead of trusting a quiet return.
+        return issue_activities_created
     except Exception as e:
         log_exception(e)
-        return
+        # biplane (BIP-18): this except swallowed EVERY failure and returned
+        # normally, so no caller could tell "audit written" from "audit
+        # failed". That is fine for the fire-and-forget celery entry points,
+        # and fatal for the outbox worker: it marks a row processed inside the
+        # SAME transaction as the audit write, so a swallowed failure would
+        # commit "done" with zero audit rows — precisely the outcome BIP-18
+        # exists to prevent. Callers that need the truth opt in; existing
+        # callers keep the old behaviour.
+        if raise_on_error:
+            raise
+        return None

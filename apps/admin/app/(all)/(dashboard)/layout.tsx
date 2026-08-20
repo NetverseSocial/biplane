@@ -12,6 +12,7 @@ import { Outlet } from "react-router";
 import { AdminHeader } from "@/components/common/header";
 import { LogoSpinner } from "@/components/common/logo-spinner";
 import { NewUserPopup } from "@/components/common/new-user-popup";
+import { UpdateBanner } from "@/components/instance/update-banner";
 // hooks
 import { useUser } from "@/hooks/store";
 // local components
@@ -42,6 +43,7 @@ function AdminLayout(_props: Route.ComponentProps) {
         <AdminSidebar />
         <main className="relative flex h-full w-full flex-col overflow-hidden bg-surface-1">
           <AdminHeader />
+          <UpdateBanner />
           <div className="vertical-scrollbar scrollbar-md h-full w-full overflow-hidden overflow-y-scroll">
             <Outlet />
           </div>

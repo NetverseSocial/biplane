@@ -19,6 +19,7 @@ from rest_framework.response import Response
 from drf_spectacular.utils import OpenApiResponse, OpenApiRequest
 
 # Module imports
+from plane.api.audit import enqueue_audit
 from plane.api.serializers import (
     IntakeIssueSerializer,
     IssueSerializer,
@@ -204,7 +205,7 @@ class IntakeIssueListCreateAPIEndpoint(BaseAPIView):
             source=SourceType.IN_APP,
         )
         # Create an Issue Activity
-        issue_activity.delay(
+        enqueue_audit("issue_activity",
             type="issue.activity.created",
             requested_data=json.dumps(request.data, cls=DjangoJSONEncoder),
             actor_id=str(request.user.id),
@@ -396,7 +397,7 @@ class IntakeIssueDetailAPIEndpoint(BaseAPIView):
             current_instance = issue
             # Log all the updates
             requested_data = json.dumps(issue_data, cls=DjangoJSONEncoder)
-            issue_activity.delay(
+            enqueue_audit("issue_activity",
                 type="issue.activity.updated",
                 requested_data=requested_data,
                 actor_id=str(request.user.id),
@@ -417,7 +418,7 @@ class IntakeIssueDetailAPIEndpoint(BaseAPIView):
             intake_serializer.save()
 
             # create a activity for status change
-            issue_activity.delay(
+            enqueue_audit("issue_activity",
                 type="intake.activity.created",
                 requested_data=json.dumps(request.data, cls=DjangoJSONEncoder),
                 actor_id=str(request.user.id),

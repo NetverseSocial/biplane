@@ -21,6 +21,7 @@ from django.db.models import (
     When,
     Subquery,
 )
+from django.db import transaction
 from django.db.models.fields import DateField
 from django.db.models.functions import Cast, ExtractWeek
 from django.utils import timezone
@@ -255,23 +256,35 @@ class WorkspaceUserPropertiesEndpoint(BaseAPIView):
     def patch(self, request, slug):
         workspace = Workspace.objects.get(slug=slug)
 
-        (workspace_properties, _) = WorkspaceUserProperties.objects.get_or_create(
-            user=request.user, workspace_id=workspace.id
-        )
+        # biplane (BIP-28): a rejected request must not leave behind the row
+        # this handler just created. Returning from inside atomic() does NOT
+        # roll back — DRF returns a response rather than raising — so the
+        # rollback is explicit.
+        with transaction.atomic():
+            (workspace_properties, _) = WorkspaceUserProperties.objects.get_or_create(
+                user=request.user, workspace_id=workspace.id
+            )
 
-        serializer = WorkspaceUserPropertiesSerializer(workspace_properties, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            serializer = WorkspaceUserPropertiesSerializer(workspace_properties, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_200_OK)
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            transaction.set_rollback(True)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def get(self, request, slug):
         workspace = Workspace.objects.get(slug=slug)
 
-        (workspace_properties, _) = WorkspaceUserProperties.objects.get_or_create(
+        # biplane (BIP-28): a GET must not write — see the note in
+        # issue/base.py. The unsaved instance serialises to the same
+        # defaults; the PATCH on this endpoint persists it.
+        workspace_properties = WorkspaceUserProperties.objects.filter(
             user=request.user, workspace=workspace
-        )
+        # id=None: see the note in issue/base.py — an unsaved BaseModel
+        # would otherwise serialise a phantom uuid for a row that does not
+        # exist.
+        ).first() or WorkspaceUserProperties(id=None, user=request.user, workspace=workspace)
 
         serializer = WorkspaceUserPropertiesSerializer(workspace_properties)
         return Response(serializer.data, status=status.HTTP_200_OK)

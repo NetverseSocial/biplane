@@ -22,6 +22,7 @@ from django.db.models import (
     UUIDField,
     Value,
 )
+from django.db import transaction
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 from django.utils.decorators import method_decorator
@@ -730,29 +731,45 @@ class IssueViewSet(BaseViewSet):
 class ProjectUserDisplayPropertyEndpoint(BaseAPIView):
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST])
     def patch(self, request, slug, project_id):
-        try:
-            issue_property = ProjectUserProperty.objects.get(
-                user=request.user, 
-                project_id=project_id
-            )
-        except ProjectUserProperty.DoesNotExist:
-            issue_property = ProjectUserProperty.objects.create(
-                user=request.user, 
-                project_id=project_id
+        # biplane (BIP-28): the create and the validation are one unit. This
+        # created the row and THEN validated with raise_exception=True — DRF
+        # turns that ValidationError into a 400 response rather than letting
+        # it propagate, so nothing rolled back and a rejected request left a
+        # row behind. Returning from inside atomic() does not roll back
+        # either, so the rollback is explicit.
+        with transaction.atomic():
+            issue_property, _ = ProjectUserProperty.objects.get_or_create(
+                user=request.user, project_id=project_id
             )
 
-        serializer = ProjectUserPropertySerializer(
-            issue_property, 
-            data=request.data,
-            partial=True
-        )
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_200_OK)
+            serializer = ProjectUserPropertySerializer(
+                issue_property,
+                data=request.data,
+                partial=True,
+            )
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_200_OK)
+
+            transaction.set_rollback(True)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST])
     def get(self, request, slug, project_id):
-        issue_property, _ = ProjectUserProperty.objects.get_or_create(user=request.user, project_id=project_id)
+        # biplane (BIP-28): a GET must not write. This used to lazily
+        # get_or_create the caller's property row, which is idempotent and
+        # harmless in itself — but GET is defined as safe, so prefetchers,
+        # crawlers and link scanners may issue it freely, and a safe method
+        # that writes invites something less benign behind the same door
+        # later. The unsaved instance serialises to the same defaults; the
+        # row is persisted by the PATCH that actually changes something.
+        issue_property = ProjectUserProperty.objects.filter(
+            user=request.user, project_id=project_id
+        # id=None is deliberate: BaseModel defaults the pk to a fresh uuid4,
+        # so an unsaved instance would serialise a real-looking id that no
+        # row has. A client could store it or send it back. No row exists
+        # yet, and the response says so.
+        ).first() or ProjectUserProperty(id=None, user=request.user, project_id=project_id)
         serializer = ProjectUserPropertySerializer(issue_property)
         return Response(serializer.data, status=status.HTTP_200_OK)
 

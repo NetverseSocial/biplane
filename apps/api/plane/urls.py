@@ -15,6 +15,11 @@ from drf_spectacular.views import (
 handler404 = "plane.app.views.error_404.custom_404_view"
 
 urlpatterns = [
+    path(
+        "api/public/git-bridge/forgejo/",
+        __import__("plane.bridge.forgejo_bridge", fromlist=["ForgejoWebhookEndpoint"]).ForgejoWebhookEndpoint.as_view(),
+        name="forgejo-git-bridge",
+    ),
     path("api/", include("plane.app.urls")),
     path("api/public/", include("plane.space.urls")),
     path("api/instances/", include("plane.license.urls")),

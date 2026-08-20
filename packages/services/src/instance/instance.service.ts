@@ -13,6 +13,7 @@ import type {
   IInstanceConfiguration,
   IInstanceInfo,
   TPage,
+  TUpdateCheckStatus,
 } from "@plane/types";
 // api service
 import { APIService } from "../api.service";
@@ -52,6 +53,91 @@ export class InstanceService extends APIService {
    */
   async changelog(): Promise<TPage> {
     return this.get("/api/instances/changelog/")
+      .then((response) => response.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  /**
+   * Retrieves the M5.2 update-check status (instance admin only).
+   * Read-only and server-local — never triggers the outbound check itself.
+   * @returns {Promise<TUpdateCheckStatus>} the last stored classification
+   */
+  async updateCheckStatus(): Promise<TUpdateCheckStatus> {
+    return this.get("/api/instances/updates/status/")
+      .then((response) => response.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  /**
+   * Asks the host applier to apply the flagged update (instance admin only).
+   * No tag parameter on purpose: the server sends the update check's flagged
+   * tag — the client is not an authority on what should run.
+   * @returns the applier's own verdict, passed through verbatim
+   */
+  async applyUpdate(): Promise<{ started?: string; error?: string }> {
+    return this.post("/api/instances/updates/apply/")
+      .then((response) => response.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  /** The automatic-updates switch (instance admin only). */
+  async autoApplySetting(): Promise<{ enabled: boolean; env_forced: boolean }> {
+    return this.get("/api/instances/updates/auto/")
+      .then((response) => response.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async setAutoApplySetting(enabled: boolean): Promise<{ enabled: boolean; env_forced: boolean }> {
+    return this.patch("/api/instances/updates/auto/", { enabled })
+      .then((response) => response.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  /** The update-server preference (instance admin only). */
+  async updateSourceSetting(): Promise<{ source: string; custom_url: string | null }> {
+    return this.get("/api/instances/updates/source/")
+      .then((response) => response.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async setUpdateSourceSetting(source: string, customUrl: string | null): Promise<{ source: string; custom_url: string | null }> {
+    return this.patch("/api/instances/updates/source/", { source, custom_url: customUrl })
+      .then((response) => response.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  /** Biplane's own changelog, shipped in the backend image. */
+  async ourChangelog(): Promise<{ markdown: string | null; error?: string }> {
+    return this.get("/api/instances/updates/changelog/")
+      .then((response) => response.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  /**
+   * The applier's run status (instance admin only), passed through verbatim.
+   */
+  async applyUpdateStatus(): Promise<{
+    running: boolean;
+    last_result: { tag: string; exit_code: number; finished_at: number } | null;
+    log_tail: string;
+  }> {
+    return this.get("/api/instances/updates/apply/status/")
       .then((response) => response.data)
       .catch((error) => {
         throw error?.response?.data;

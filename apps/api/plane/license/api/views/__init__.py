@@ -27,3 +27,6 @@ from .workspace import (
     InstanceWorkSpaceAvailabilityCheckEndpoint,
     InstanceWorkSpaceEndpoint,
 )
+from .update_check import UpdateCheckStatusEndpoint
+from .apply_update import ApplyUpdateEndpoint, ApplyStatusEndpoint
+from .auto_apply_setting import AutoApplySettingEndpoint, OurChangelogEndpoint, UpdateSourceSettingEndpoint

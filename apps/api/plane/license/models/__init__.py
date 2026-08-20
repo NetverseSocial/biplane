@@ -2,4 +2,4 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
-from .instance import Instance, InstanceAdmin, InstanceConfiguration, InstanceEdition
+from .instance import BiplaneAutoApplyAttempt, Instance, InstanceAdmin, InstanceConfiguration, InstanceEdition

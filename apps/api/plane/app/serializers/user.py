@@ -8,20 +8,42 @@ from rest_framework import serializers
 # Module import
 from plane.db.models import Account, Profile, User, Workspace, WorkspaceMemberInvite
 from plane.utils.url import contains_url
+from plane.utils.name_policy import normalize_name
 
 from .base import BaseSerializer
 
 
 class UserSerializer(BaseSerializer):
+    # biplane (BIP-21, Morrow RC 3105): normalise at the STORAGE boundary.
+    #
+    # The sign-up view canonicalises names, but this serializer is the other
+    # way a name reaches the database — onboarding and profile settings both
+    # PATCH /users/me/ — and it returned `value` untouched. So a name the
+    # client had validated in canonical form was persisted RAW, and the leading
+    # and trailing control characters the policy exists to strip survived here
+    # while being stripped on sign-up. Same defect as the original, different
+    # door.
+    #
+    # The forms now submit the canonical value too, but that is defence in
+    # depth, not the fix: the client is not the authority on what gets stored,
+    # and any other API caller would still write raw. The guard belongs on the
+    # boundary that actually persists.
+    #
+    # NOTE, deliberately not widened here: this validator still only rejects
+    # URLs. The sign-up predicate additionally enforces a character allowlist,
+    # and this one does not — so the profile API remains more permissive about
+    # WHICH characters a name may contain. That asymmetry predates this change;
+    # closing it is a policy decision with a real chance of rejecting existing
+    # stored names, so it wants its own ticket rather than riding along here.
     def validate_first_name(self, value):
         if contains_url(value):
             raise serializers.ValidationError("First name cannot contain a URL.")
-        return value
+        return normalize_name(value)
 
     def validate_last_name(self, value):
         if contains_url(value):
             raise serializers.ValidationError("Last name cannot contain a URL.")
-        return value
+        return normalize_name(value)
 
     class Meta:
         model = User

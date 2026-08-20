@@ -317,6 +317,10 @@ CELERY_ACCEPT_CONTENT = ["application/json"]
 
 CELERY_IMPORTS = (
     # scheduled tasks
+    "plane.bgtasks.forgejo_bridge_task",
+    "plane.bgtasks.poll_github_task",
+    "plane.bgtasks.audit_outbox_task",
+    "plane.bgtasks.update_check_task",
     "plane.bgtasks.issue_automation_task",
     "plane.bgtasks.exporter_expired_task",
     "plane.bgtasks.file_asset_task",
@@ -509,3 +513,83 @@ if ENABLE_DRF_SPECTACULAR:
 # MongoDB Settings
 MONGO_DB_URL = os.environ.get("MONGO_DB_URL", False)
 MONGO_DB_DATABASE = os.environ.get("MONGO_DB_DATABASE", False)
+
+# Biplane git bridge: ONE credential PER forge personality (Morrow 10146).
+# Never share a value across these: GitLab echoes its token verbatim while the
+# others use theirs as an HMAC key, so a shared value lets the observed GitLab
+# token sign arbitrary bodies for the body-bound forges. Each fails closed
+# when unset. FORGEJO_WEBHOOK_SECRET keeps its legacy name so deployed
+# Forgejo bridges keep working unchanged.
+FORGEJO_WEBHOOK_SECRET = os.environ.get("FORGEJO_WEBHOOK_SECRET")
+GITHUB_WEBHOOK_SECRET = os.environ.get("GITHUB_WEBHOOK_SECRET")
+GITLAB_WEBHOOK_TOKEN = os.environ.get("GITLAB_WEBHOOK_TOKEN")
+
+# Per-forge-INSTANCE identity that namespaces semantic event keys (ADR 010 §1):
+# NOT forge.name (a product family — two Forgejo servers both numbering repo 42
+# would collide), and never a payload field. An empty value is a deployment
+# defect: the bridge refuses deliveries for that forge rather than keying against
+# an empty namespace. Changing a configured id once delivery rows exist is a
+# namespace migration, not a config edit.
+FORGEJO_INSTANCE_ID = os.environ.get("FORGEJO_INSTANCE_ID")
+GITHUB_INSTANCE_ID = os.environ.get("GITHUB_INSTANCE_ID")
+GITLAB_INSTANCE_ID = os.environ.get("GITLAB_INSTANCE_ID")
+
+# Git bridge: JSON map of repo full_name -> workspace slug (tenancy scope, RC 3064)
+FORGEJO_BRIDGE_REPO_MAP = os.environ.get("FORGEJO_BRIDGE_REPO_MAP")
+
+# Git bridge: Forgejo API access for resolving truncated push ranges (RC 3069)
+FORGEJO_BASE_URL = os.environ.get("FORGEJO_BASE_URL")
+FORGEJO_BRIDGE_API_TOKEN = os.environ.get("FORGEJO_BRIDGE_API_TOKEN")
+# Writing back to the forge is a SEPARATE grant from reading it. The read
+# token above is issued read-only, so a reply attempted with it 403s on every
+# delivery. Unset means the bridge stays silent rather than failing loudly.
+FORGEJO_BRIDGE_WRITE_TOKEN = os.environ.get("FORGEJO_BRIDGE_WRITE_TOKEN", "")
+
+# Git bridge: accept forges whose signature does not cover the request body
+# (e.g. GitLab's static token). Weaker guarantee — deliberate operator opt-in,
+# never a default (BIP-15, RC 3170)
+BRIDGE_ALLOW_UNSIGNED_BODY_FORGES = os.environ.get("BRIDGE_ALLOW_UNSIGNED_BODY_FORGES", "0") == "1"
+
+# biplane (BIP-32): where the update check looks for OUR releases.
+# Owner ruling (John, 2026-08-10): check our repos, never upstream Plane's.
+# Forgejo is preferred; the public GitHub mirror is the fallback.
+# These MUST be loaded here — an earlier revision defined them only in tests,
+# so the fallback existed in the suite and was absent in production (Morrow
+# RC 3250). A setting that only exists under override_settings is a false green.
+BIPLANE_FORGEJO_URL = os.environ.get("BIPLANE_FORGEJO_URL")
+BIPLANE_FORGEJO_REPO = os.environ.get("BIPLANE_FORGEJO_REPO", "example/biplane")
+# Forgejo-only credential. example/biplane is private, so without this the
+# preferred source can never answer. NEVER sent to any other host.
+BIPLANE_FORGEJO_RELEASE_TOKEN = os.environ.get("BIPLANE_FORGEJO_RELEASE_TOKEN")
+# Our own public mirror, e.g. "netverse/biplane". Never makeplane/plane.
+BIPLANE_GITHUB_REPO = os.environ.get("BIPLANE_GITHUB_REPO", "NetverseSocial/biplane")
+
+# M5.2 update check (BIP-41). Optional; absence surfaces as an honest UNKNOWN
+# with a named reason — never a crash, never a silent skip. The RUNNING
+# version deliberately has NO setting here: it is M4's job (the
+# `biplane_installed_build` Instance field) — a config-declared version would
+# be a second place a version can live, which is the duplicate-mechanism
+# pattern the 2026-08-12 audit retired.
+# Comma-separated EXTRA origins the check may fetch from, UNIONED with the
+# transport defaults (GitHub API + release-asset hosts). The Forgejo base URL
+# is included automatically when configured.
+BIPLANE_UPDATE_ALLOWED_ORIGINS = os.environ.get("BIPLANE_UPDATE_ALLOWED_ORIGINS")
+
+# The narrow privileged applier on the deploy host (ticket 69 / BIP-42 tail).
+# Unset ⇒ the apply endpoints answer 501 and the banner shows the manual path.
+BIPLANE_APPLY_SERVICE_URL = os.environ.get("BIPLANE_APPLY_SERVICE_URL")
+BIPLANE_APPLY_SERVICE_TOKEN = os.environ.get("BIPLANE_APPLY_SERVICE_TOKEN")
+# The AUTOMATIC mode (ticket 69): apply-on-flag, OFF unless explicitly "1".
+BIPLANE_APPLY_AUTO = os.environ.get("BIPLANE_APPLY_AUTO", "") == "1"
+
+# biplane (BIP-36): the installed Biplane build identifier, baked at image build
+# time and injected here at runtime. Distinct from APP_VERSION, which is PLANE's
+# base version (1.3.1) and says nothing about which Biplane build is running.
+# Unset => NULL => UNKNOWN. It is never inferred from the Plane version.
+# Wired through deployments/selfhost/docker-compose.override.yml + env.example —
+# a setting that exists only in code and is injected by nothing is the RC 3252
+# false green.
+BIPLANE_BUILD = os.environ.get("BIPLANE_BUILD")
+# The installed RELEASE TAG, baked into the image beside BIPLANE_BUILD (never
+# compose-set — RC 3271/3392 #2). Empty on dev builds: honest UNKNOWN.
+BIPLANE_VERSION = os.environ.get("BIPLANE_VERSION")

@@ -16,7 +16,7 @@ import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { CloseIcon } from "@plane/propel/icons";
 import { Input, PasswordStrengthIndicator, Spinner } from "@plane/ui";
-import { getPasswordStrength } from "@plane/utils";
+import { getPasswordStrength, submitSignUp } from "@plane/utils";
 // components
 import { ForgotPasswordPopover } from "@/components/account/auth-forms/forgot-password-popover";
 // constants
@@ -72,6 +72,9 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
   const [isPasswordInputFocused, setIsPasswordInputFocused] = useState(false);
   const [isRetryPasswordInputFocused, setIsRetryPasswordInputFocused] = useState(false);
   const [isBannerMessage, setBannerMessage] = useState(false);
+  // biplane (BIP-22, Morrow RC 3123): the sign-up outcome could not be
+  // determined. The account MAY exist, so the user is told rather than retried.
+  const [isIndeterminate, setIndeterminate] = useState(false);
   // biplane: strength is a warning, not a wall — after the banner, the user may
   // explicitly proceed with their password (mirrors instance setup). The SERVER
   // (zxcvbn) is the authority: a PASSWORD_TOO_WEAK bounce must surface the banner
@@ -150,6 +153,19 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
 
   return (
     <>
+      {isIndeterminate && mode === EAuthModes.SIGN_UP && (
+        <div className="space-y-2 rounded-md border border-danger-strong/50 bg-danger-subtle p-2">
+          <div className="relative flex items-center gap-2">
+            <div className="relative flex h-4 w-4 shrink-0 items-center justify-center">
+              <Info size={16} className="text-danger-primary" />
+            </div>
+            <div className="w-full text-13 font-medium text-danger-primary">
+              We could not confirm whether your account was created. Try signing in first — if that
+              does not work, submit again.
+            </div>
+          </div>
+        </div>
+      )}
       {isBannerMessage && mode === EAuthModes.SIGN_UP && (
         <div className="space-y-2 rounded-md border border-danger-strong/50 bg-danger-subtle p-2">
           <div className="relative flex items-center gap-2">
@@ -209,7 +225,85 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
               else sessionStorage.removeItem("bp_company_name");
             }
             setIsSubmitting(true);
-            if (formRef.current) formRef.current.submit(); // Manually submit the form if the condition is met
+            const form = formRef.current;
+            if (!form) return;
+
+            // biplane (BIP-22): sign-up posts via fetch so a PASSWORD_TOO_WEAK
+            // rejection does NOT navigate.
+            //
+            // The bug: this was a native form POST, so the server's bounce was a
+            // full page load and every field went with it. The banner and the
+            // "use it anyway" checkbox appeared correctly — and then Create
+            // account sat DISABLED, because first name and password had just
+            // been wiped. The user was told to tick a box and then could not
+            // act on it without retyping the whole form. Witnessed on a real
+            // browser: first_name "Amelia" and both password fields empty after
+            // the bounce, email surviving only because it rides in the URL.
+            //
+            // Preserving the fields across the navigation is not an option: the
+            // password would have to travel through the URL or sessionStorage,
+            // and a password belongs in neither — history, logs, and any
+            // extension with storage access all see those. So the fix is to not
+            // leave the page at all.
+            //
+            // Only PASSWORD_TOO_WEAK is intercepted. Every other outcome keeps
+            // the previous navigation behaviour exactly, to hold the blast
+            // radius of this change to the case it is for.
+            if (mode !== EAuthModes.SIGN_UP) {
+              form.submit();
+              return;
+            }
+            // The decision logic lives in @plane/utils because apps/web has no
+            // test runner; `submitSignUp` is covered by signup-submit.test.ts
+            // (Morrow RC 3109). Everything below is the browser boundary it
+            // cannot own: the actual fetches, the DOM, and the React state.
+            await submitSignUp({
+              // Rebuilt per attempt on purpose. The hidden accept_weak_password
+              // input does not exist in the form until the user ticks the box,
+              // so a cached body would resubmit the rejected password forever.
+              buildBody: () => new FormData(form),
+              postForm: (body) =>
+                fetch(form.action, {
+                  method: "POST",
+                  body,
+                  credentials: "include",
+                  redirect: "follow",
+                }),
+              // Ask the SERVER whether we are signed in. The query string cannot
+              // be trusted for this: next_path is interpolated into the redirect
+              // unencoded, so a crafted one puts error_message=PASSWORD_TOO_WEAK
+              // on a SUCCESSFUL sign-up.
+              checkAuthenticated: async () => {
+                const session = await fetch(`${API_BASE_URL}/api/users/me/`, { credentials: "include" });
+                return session.ok;
+              },
+              navigate: (url) => {
+                window.location.href = url;
+              },
+              onWeakPassword: () => {
+                // Stay put. Banner and checkbox appear over a form that still
+                // holds everything the user typed, so ticking the box and
+                // pressing the button again is genuinely all that is left to do.
+                setIsSubmitting(false);
+                setBannerMessage(true);
+              },
+              onIndeterminate: (error) => {
+                // The POST may or may not have reached the server (Morrow
+                // RC 3123). Sign-up is not idempotent, so we must NOT retry it
+                // for the user — a silent resubmit either creates a second
+                // account or earns USER_ALREADY_EXIST on a sign-up that
+                // actually worked, which reads as the bug this change fixes.
+                setIsSubmitting(false);
+                setIndeterminate(true);
+                console.error(
+                  "[biplane BIP-22] sign-up request failed before an outcome was known. " +
+                    "NOT resubmitting: the account may already exist. This usually means the " +
+                    "API is on a different origin than the app and the redirect cannot be " +
+                    "followed with credentials.",
+                  error
+                );
+              },
+            });
           } else {
             setBannerMessage(true);
           }

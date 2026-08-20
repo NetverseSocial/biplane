@@ -134,7 +134,18 @@ export const AdminSidebarHelpSection = observer(function AdminSidebarHelpSection
                   );
               })}
             </div>
-            <div className="px-2 pt-2 pb-1 text-10">Version: v{instance?.current_version}</div>
+            {/* biplane (BIP-30): show OUR build, not just the upstream Plane
+                release we are based on. "Version: v1.3.1" alone told an
+                operator nothing about which Biplane build was deployed —
+                confirming it meant shelling into the container. The build id
+                is baked in at image build time (VITE_BIPLANE_BUILD). */}
+            <div className="px-2 pt-2 pb-1 text-10">
+              Biplane{" "}
+              {import.meta.env.VITE_BIPLANE_VERSION
+                ? `${import.meta.env.VITE_BIPLANE_VERSION} (${import.meta.env.VITE_BIPLANE_BUILD || "dev"})`
+                : `dev build ${import.meta.env.VITE_BIPLANE_BUILD || "dev"}`}
+              <span className="text-placeholder"> · on Plane CE v{instance?.current_version}</span>
+            </div>
           </div>
         </Transition>
       </div>

@@ -4,7 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { BIPLANE_VERSION } from "@plane/constants";
 import { useState } from "react";
 import { observer } from "mobx-react";
 // ui
@@ -32,7 +31,14 @@ export const WorkspaceEditionBadge = observer(function WorkspaceEditionBadge() {
     <>
       <BiplaneAboutModal isOpen={isAboutOpen} onClose={() => setIsAboutOpen(false)} />
       <Tooltip
-        tooltipContent={`Biplane v${BIPLANE_VERSION} · built on Plane v${packageJson.version}`}
+        // biplane: the baked release, same source as every other surface — the
+        // hand-maintained constant this replaced was "1.0.0" while v1.1.0 was
+        // deployed: unambiguous, specific, and false (Vex, review 3815).
+        tooltipContent={
+          import.meta.env.VITE_BIPLANE_VERSION
+            ? `Biplane ${import.meta.env.VITE_BIPLANE_VERSION} · built on Plane v${packageJson.version}`
+            : `Biplane dev build ${import.meta.env.VITE_BIPLANE_BUILD || "dev"} · built on Plane v${packageJson.version}`
+        }
         isMobile={isMobile}
       >
         <Button

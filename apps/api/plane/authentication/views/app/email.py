@@ -21,6 +21,9 @@ from plane.authentication.adapter.error import (
     AUTHENTICATION_ERROR_CODES,
 )
 from plane.utils.path_validator import get_safe_redirect_url
+from plane.utils.name_policy import name_error_code, normalize_name
+
+
 
 
 class SignInAuthEndpoint(View):
@@ -187,25 +190,14 @@ class SignUpAuthEndpoint(View):
             )
             return HttpResponseRedirect(url)
 
-        # biplane: names are collected on the sign-up form — VALIDATE server-side
-        # (required first name; letters/spaces/'’‘.- only; bounded) and reject with a
-        # clean 4xx redirect rather than silently canonicalizing what gets stored.
-        def _name_error(value, required):
-            value = str(value or "").strip()
-            if not value:
-                return "REQUIRED_FIRST_NAME_SIGN_UP" if required else None
-            if len(value) > 150:
-                return "INVALID_NAME_SIGN_UP"
-            for ch in value:
-                # Plain space ONLY — Python's isspace() is True for NEL (U+0085) and
-                # the Unicode line/paragraph separators, which are exactly the
-                # controls this must reject (Sable RC 3029).
-                if not (ch.isalpha() or ch == " " or ch in "'’‘.-"):
-                    return "INVALID_NAME_SIGN_UP"
-            return None
+        # Normalise ONCE, then validate and store the same values. Validating a
+        # stripped form and persisting the raw one is how unchecked characters
+        # reached the database (see normalize_name).
+        first_name = normalize_name(request.POST.get("first_name"))
+        last_name = normalize_name(request.POST.get("last_name"))
 
-        name_error = _name_error(request.POST.get("first_name"), required=True) or _name_error(
-            request.POST.get("last_name"), required=False
+        name_error = name_error_code(first_name, required=True) or name_error_code(
+            last_name, required=False
         )
         if name_error:
             exc = AuthenticationException(
@@ -248,8 +240,8 @@ class SignUpAuthEndpoint(View):
                 callback=post_user_auth_workflow,
                 # biplane: name collected on the sign-up form; explicit weak-password
                 # override checkbox mirrors instance setup.
-                first_name=request.POST.get("first_name", ""),
-                last_name=request.POST.get("last_name", ""),
+                first_name=first_name,
+                last_name=last_name,
                 accept_weak_password=request.POST.get("accept_weak_password") == "True",
             )
             user = provider.authenticate()

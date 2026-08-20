@@ -164,6 +164,11 @@ export enum EAuthErrorCodes {
   ADMIN_USER_ALREADY_EXIST = "5180",
   ADMIN_USER_DOES_NOT_EXIST = "5185",
   ADMIN_USER_DEACTIVATED = "5190",
+  // biplane: name validation on sign-up. Present in the web helper's copy of this
+  // enum since that feature landed; added here so the shared handler is a superset
+  // and the web copy can re-export instead of diverging further (BIP-1).
+  REQUIRED_FIRST_NAME_SIGN_UP = "5046",
+  INVALID_NAME_SIGN_UP = "5047",
   // Rate limit
   RATE_LIMIT_EXCEEDED = "5900",
 }

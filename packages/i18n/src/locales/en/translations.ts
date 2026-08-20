@@ -1653,6 +1653,7 @@ export default {
       preferences: "Preferences",
       notifications: "Notifications",
       "api-tokens": "Personal Access Tokens",
+      updates: "Updates",
     },
     tabs: {
       summary: "Summary",

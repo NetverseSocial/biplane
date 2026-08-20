@@ -1,11 +1,11 @@
-FROM caddy:2.10.0-builder-alpine AS caddy-builder
+FROM caddy:2.10.0-builder-alpine@sha256:cc6c40aa7cdea02ef9cb99f3c4e4664ecdb6066ae93ae52ed5288afc511e1241 AS caddy-builder
 
 RUN xcaddy build \
         --with github.com/caddy-dns/cloudflare@v0.2.1 \
         --with github.com/caddy-dns/digitalocean@04bde2867106aa1b44c2f9da41a285fa02e629c5 \
         --with github.com/mholt/caddy-l4@4d3c80e89c5f80438a3e048a410d5543ff5fb9f4
 
-FROM caddy:2.10.0-alpine
+FROM caddy:2.10.0-alpine@sha256:ae4458638da8e1a91aafffb231c5f8778e964bca650c8a8cb23a7e8ac557aa3c
 
 RUN apk add --no-cache nss-tools bash curl
 

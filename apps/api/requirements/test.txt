@@ -10,3 +10,4 @@ freezegun==1.2.2
 coverage==7.2.7
 httpx==0.24.1
 requests==2.33.0
+django-test-migrations==1.4.0

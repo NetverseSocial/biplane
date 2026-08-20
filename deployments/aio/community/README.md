@@ -65,7 +65,7 @@ docker run --name plane-aio --rm -it \
 ### Example with IP Address
 
 ```bash
-MYIP=192.168.68.169
+MYIP=192.168.1.10
 docker run --name myaio --rm -it \
     -p 80:80 \
     -e DOMAIN_NAME=${MYIP} \

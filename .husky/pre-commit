@@ -1,1 +1,21 @@
+# Commit-identity advisory. MUST NEVER BLOCK — and both halves of that are
+# structural here rather than a promise in a comment (Rowan RC 3416):
+#
+#   * it runs BEFORE lint-staged, so the hook's exit status stays
+#     lint-staged's. Appended after it, this line became the hook's status and
+#     silently turned lint-staged into a no-op — a failing lint exited 0 and
+#     the commit went through. That is a worse defect than the one the
+#     advisory exists to warn about.
+#   * it is guarded on presence AND executability, and its status is
+#     discarded. Called bare, a missing file exits 127 and a non-executable
+#     one exits 126, either of which BLOCKS the commit — the exact opposite of
+#     what this is for, and reachable by a bad checkout rather than by malice.
+#
+# See .githooks/check-commit-identity.sh and docs/agents/commit-identity.md.
+# The gate is review, not this.
+if [ -x ./.githooks/check-commit-identity.sh ]; then
+  ./.githooks/check-commit-identity.sh || true
+fi
+
+# Last, and its status is the hook's: lint-staged IS a gate.
 pnpm lint-staged

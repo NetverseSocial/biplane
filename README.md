@@ -15,7 +15,7 @@
 
 ---
 
-[Plane](https://plane.so) is an excellent open-source project tracker — boards, sprints, work items — built for human teams. **Biplane** is an independent community fork of it, made by a dev team where AI agents do much of the building. It adds a **multi-agent layer**: commits, pull requests, and merges that reference a work item drive its state via the git bridge, a tamper-evident ledger separately records signature-verified webhook deliveries, and humans watch it happen live on the board, the **Wheel** (a real-time radial view of every ticket), and the **Traveler** (each work item's recorded lifecycle, like a medical record).
+[Plane](https://plane.so) is an excellent open-source project tracker — boards, sprints, work items — built for human teams. **Biplane** is an independent community fork of it, made by a dev team where AI agents do much of the building. It adds a **multi-agent layer**: commits, pull requests, and merges that reference a work item drive its state via the git bridge, a tamper-evident ledger separately records webhook deliveries (marked with their signature-verification status), and humans watch it happen live on the board, the **Wheel** (a real-time radial view of every ticket), and the **Traveler** (each work item's ledger-recorded deliveries as a timeline).
 
 We're not competing with Plane — we're using a good app a bit differently, and sharing it in case your team needs the same.
 
@@ -27,7 +27,7 @@ We didn't set out to build a project-management product. We needed a tracker tha
 - **Your own identity provider** — generic OIDC single sign-on isn't part of Plane's Community Edition, and local-first deployment needs it; Biplane signs in against your own idP (we run a lightweight one, with Forgejo as a fallback), wired natively into the fork.
 - **Forgejo-native git** — Plane's documented git integrations (GitHub, GitLab, Bitbucket) don't currently include Forgejo. Biplane's bridge speaks Forgejo webhooks directly.
 - **Bring your own agent fleet** — Biplane's automation is driven by your own agents and your git events (any stack that can commit code or call an API); Biplane adds no marketplace requirement and no usage meter of its own — the whole layer is yours to run.
-- **Receipts you can verify** — signature-verified webhook deliveries land in an append-only, tamper-evident ledger you host yourself.
+- **Receipts you can verify** — webhook deliveries land in an append-only, tamper-evident ledger you host yourself, each recorded with whether its signature verified at ingest.
 - **Views woven in, not bolted on** — the kanban, list, and calendar boards, cycle and module views, the Wheel, and the Traveler all update live on screen as agents work, no page refresh — useful when updates are frequent, and made practical by owning the frontend.
 
 Biplane supports a larger project of ours — not a project-management tool, but an exploration of what AI agents themselves can be. We'd rather demonstrate that than talk about it. More when it's ready.
@@ -36,18 +36,22 @@ Biplane supports a larger project of ours — not a project-management tool, but
 
 | Piece | What it does |
 |---|---|
-| **Forgejo/Git bridge** | Webhooks from your git host move tickets automatically: a commit that references the ticket → *In Progress*, PR opened → *In Review*, merge → *Done*. Monotonic (never moves a ticket backwards), retry-safe, serialized per issue. |
-| **Audit Ledger** | Append-only, tamper-evident record of signature-verified webhook deliveries — each timeline entry carries a verified checkmark. |
+| **Forgejo/Git bridge** | Webhooks from your git host tell you when a commit or pull request concerns a ticket. A push or merged PR whose commit message — or PR **body** — references a ticket explicitly (`ref`/`refs`, `close`/`closes`, `fix`/`fixes`, `resolve`/`resolves` + ticket id) is recognised, and the outcome is recorded durably against the delivery. **It does not change ticket state.** People move tickets; the bridge assists by noticing and, where granted a comment token, replying on the pull request when something needs a human. Retry-safe, with signature-verified deliveries recorded before processing. Built into the backend — see [Git bridge setup](deployments/selfhost/README.md#git-bridge-setup). |
+| **Audit Ledger** | Append-only, tamper-evident record of webhook deliveries — each timeline entry is marked with its signature-verification status (✓ verified / ⚠ not verified). |
 | **Workflow Policy** | Per-work-item-type routing rules for what agents may do. |
-| **Agent Write-Path** | The gated proxy agents use to write to the tracker — idempotent creates, fail-closed authorization. |
-| **Wheel & Traveler** | Native live views: the whole project as a turning wheel; each item's history as a vertical timeline. |
+| **Write path** | How agents write to the tracker: the **built-in token API** (`/api/v1/`) — one transaction boundary so an error response keeps no partial writes, server-bound authorship on the work-item paths, external-id duplicate detection for retries (serial detection, not idempotency). Not a separate program. Documented in [The write path](docs/write-path.md). |
+| **Wheel & Traveler** | Native live views: the whole project as a turning wheel; each item's ledger-recorded webhook deliveries as a vertical timeline. Not its complete history — the Traveler shows what the forge told us, not what happened to the ticket, so board changes made by people (which, since v1.1.0, is all of them) do not appear. |
 | **Watch mode** | Boards and views refresh themselves only when something actually changed (change-signal gated — no polling flicker). |
 
 ## What's in this repository
 
 This repository contains the Biplane fork of Plane Community Edition, including its upstream application components; Biplane-specific product changes are currently concentrated in the web frontend (the Wheel, the Traveler, watch-mode boards, branding). It is AGPL-3.0 and contains the corresponding source for our hosted web application.
 
-The agent services described above (git bridge, audit ledger, workflow policy, agent write-path) are **separate programs** that talk to Plane only over its API and webhooks. They are distributed and licensed separately and are **not part of this repository**.
+The **git bridge is part of this repository** and part of the AGPL-3.0 work: it runs inside the backend as a Django endpoint, against the tracker's own models, and is not a separate program. Its source is at `apps/api/plane/bridge/`.
+
+The **write path is not a separate program either**: agents write through the built-in token API (`/api/v1/`), whose actual behavior — transaction boundary, authorship binding, duplicate-detection and retry semantics — is documented in [`docs/write-path.md`](docs/write-path.md).
+
+The remaining agent services (audit ledger, workflow policy) are **separate programs** that talk to Plane only over its API and webhooks. They are distributed and licensed separately and are **not part of this repository**.
 
 ### Quick start (web application)
 
@@ -65,13 +69,14 @@ The frontend expects a Plane Community Edition v1.3.x backend (`/api`, `/auth`) 
 ## Documentation
 
 - **Getting started & architecture** — this README and [`docs/`](docs/) *(growing — ask in Discussions)*
+- **How agents write to the tracker** — [The write path](docs/write-path.md): what actually happens between a token request and a row, as verified behavior
 - **What's new** — see [Releases](../../releases)
 - **Forum** — see [Discussions](../../discussions)
 - Plane's originals: [Plane docs](https://docs.plane.so) · [Plane changelog](https://plane.so/changelog) · [Plane forum](https://forum.plane.so)
 
 ## Relationship to Plane
 
-Biplane is **built on, not competing with, [Plane](https://plane.so)** (Community Edition, AGPL-3.0). The web app in this repository is a modified Plane frontend and remains **AGPL-3.0** — this repository contains the corresponding source for our hosted web application. The agent-side services (bridge, ledger, policy, write-path) are separate programs that talk to Plane only over its public API and webhooks.
+Biplane is **built on, not competing with, [Plane](https://plane.so)** (Community Edition, AGPL-3.0). The web app in this repository is a modified Plane frontend and remains **AGPL-3.0** — this repository contains the corresponding source for our hosted web application. The git bridge and the agent write path are built into the backend and are part of that AGPL-3.0 work. The remaining agent-side services (ledger, policy) are separate programs that talk to Plane only over its public API and webhooks.
 
 Biplane is an independent community fork and is **not affiliated with or endorsed by Plane**.
 
@@ -80,4 +85,5 @@ Plane is a product of Plane Software, Inc. Thank you, [Plane team](https://githu
 ## License
 
 - This repository (the web application, derived from Plane): **AGPL-3.0** (see [LICENSE.txt](LICENSE.txt))
-- Biplane's agent services are separate programs, distributed and licensed separately; they are not part of this repository.
+- The git bridge (`apps/api/plane/bridge/`) is part of this repository and is covered by the same AGPL-3.0 license.
+- Biplane's remaining agent services (ledger, policy) are separate programs, distributed and licensed separately; they are not part of this repository. (The write path is not among them — it is the built-in token API, part of this repository.)

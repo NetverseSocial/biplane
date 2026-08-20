@@ -14,7 +14,7 @@ import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { IUser } from "@plane/types";
 import { EOnboardingSteps } from "@plane/types";
-import { cn, getFileURL, getPasswordStrength, validatePersonName } from "@plane/utils";
+import { cn, getFileURL, getPasswordStrength, validatePersonName, normalizePersonName } from "@plane/utils";
 // components
 import { UserImageUploadModal } from "@/components/core/modals/user-image-upload-modal";
 // hooks
@@ -93,8 +93,8 @@ export const ProfileSetupStep = observer(function ProfileSetupStep({ handleStepC
 
   const handleSubmitUserDetail = async (formData: TProfileSetupFormValues) => {
     const userDetailsPayload: Partial<IUser> = {
-      first_name: formData.first_name,
-      last_name: formData.last_name,
+      first_name: normalizePersonName(formData.first_name),
+      last_name: normalizePersonName(formData.last_name),
       avatar_url: formData.avatar_url ?? undefined,
     };
     try {

@@ -1,0 +1,294 @@
+{
+  "_about": [
+    "BIP-37 M8.3 convergence target set, AS DATA. Every work-item state-write",
+    "site the census finds must appear here with a status and a reason. An",
+    "exclusion is a RECORDED DECISION, never an absence \u2014 a site missing from",
+    "this file fails the convergence test, which is how a new bypass announces",
+    "itself instead of arriving quietly.",
+    "",
+    "v1's door governs the TRANSITION verb only: an existing work item's state",
+    "is reassigned. Birth-state (a row created carrying a state) is a different",
+    "verb the door does not accept yet, so those sites are excluded WITH that",
+    "reason rather than pretended away.",
+    "",
+    "Every status below was set by READING the site, not by trusting the",
+    "scanner's verb or an earlier hand-written list. Four entries were",
+    "reclassified in the process, in both directions \u2014 see their reasons.",
+    "",
+    "`lines` is SITE-GRANULAR and the guarantees read it: recorded sites and",
+    "census sites must be exactly equal. A new write inside an already-listed",
+    "file is therefore caught, which a file-set comparison missed. A CONVERGED",
+    "entry records no lines at all \u2014 it writes nothing, so it points at nothing.",
+    "",
+    "THE CLAIM THIS FILE SUPPORTS IS BOUNDED, and the bound is the blind-spot",
+    "list below. Rowan demonstrated why that matters: a KNOWN instance of a",
+    "declared blind spot was live while the prose said all transition writers",
+    "had converged. A declared blind spot bounds a claim; it does not licence",
+    "leaving a known instance unscanned."
+  ],
+  "governed_verb": "transition",
+  "entries": [
+    {
+      "file": "api/serializers/intake.py",
+      "lines": [],
+      "verb": "transition",
+      "status": "converge",
+      "reason": "Intake acceptance moves an EXISTING issue out of TRIAGE to the project default. Existing row, state reassigned: exactly the verb the door governs. CONVERGED: `lines` is now empty because this site no longer writes state \u2014 a converged entry points at nothing, and that is enforced rather than trusted (previously it kept stale line numbers and nothing noticed; Vex, census review).",
+      "converged_from_lines": [
+        155
+      ]
+    },
+    {
+      "file": "app/serializers/intake.py",
+      "lines": [],
+      "verb": "transition",
+      "status": "converge",
+      "reason": "The app-surface twin of the api serializer above, same TRIAGE-to-default move on acceptance. Two surfaces, one rule \u2014 which is the drift the service exists to prevent. CONVERGED: `lines` is now empty because this site no longer writes state \u2014 a converged entry points at nothing, and that is enforced rather than trusted (previously it kept stale line numbers and nothing noticed; Vex, census review).",
+      "converged_from_lines": [
+        81
+      ]
+    },
+    {
+      "file": "bgtasks/issue_automation_task.py",
+      "lines": [],
+      "verb": "transition",
+      "status": "converge",
+      "reason": "Auto-close reassigns the state of existing issues \u2014 the governed verb. CONVERGED under John's ruling of 2026-08-16, ATTRIBUTION FOLLOWS THE DECISION: an automated transition is attributed to the entity whose completed act triggered it, here the last entity that finished work on the issue before it went stale, because the close is a CONSEQUENCE of their act and of no one else's. An auto-deterministic function earns no credit; it reacted to a decision. This is honest where the previous attribution to project.created_by_id was not \u2014 that person in general never touched the issue. The operation records source=automation.auto_close so the ledger row can never be read as their manual click. EDGE, per the same ruling: if the triggering decider is no longer an active member with a write role at fire time, the transition is REFUSED and recorded rather than attributed to anyone else \u2014 their authority is what the close rested on and does not survive its loss (the BIP-67 precedent: absent a verified actor, write nothing). CONVERGED: `lines` is now empty because this site no longer writes state \u2014 a converged entry points at nothing, and that is enforced rather than trusted (previously it kept stale line numbers and nothing noticed; Vex, census review).",
+      "reclassified": true,
+      "ruling": "attribution-follows-the-decision (John, 2026-08-16)",
+      "converged_from_lines": [
+        126,
+        131
+      ]
+    },
+    {
+      "file": "api/views/intake.py",
+      "lines": [
+        191
+      ],
+      "verb": "create",
+      "status": "excluded",
+      "exclusion": "birth-state",
+      "reason": "RECLASSIFIED from an earlier converge list: this is Issue.objects.create(..., state_id=triage) \u2014 a row born in triage, not an existing row moved. The transition half of intake lives in the serializer above and converges there.",
+      "reclassified": true
+    },
+    {
+      "file": "space/views/intake.py",
+      "lines": [
+        145
+      ],
+      "verb": "create",
+      "status": "excluded",
+      "exclusion": "birth-state",
+      "reason": "RECLASSIFIED from an earlier converge list: same create-with-triage shape as api/views/intake.py, and the file contains no transition at all.",
+      "reclassified": true
+    },
+    {
+      "file": "db/models/issue.py",
+      "lines": [
+        189,
+        191
+      ],
+      "verb": "create",
+      "status": "excluded",
+      "exclusion": "birth-state",
+      "reason": "RECLASSIFIED from the scanner's `transition` verdict: the assignment sits under `if self.state is None` in save(), so it only ever fills an unset birth-state. An attribute assignment is not evidence of a transition.",
+      "reclassified": true
+    },
+    {
+      "file": "db/models/draft.py",
+      "lines": [
+        94,
+        96
+      ],
+      "verb": "create",
+      "status": "excluded",
+      "exclusion": "birth-state",
+      "reason": "RECLASSIFIED from the scanner's `transition` verdict, same `if self.state is None` default-fill as db/models/issue.py. Drafts are also not work items until published.",
+      "reclassified": true
+    },
+    {
+      "file": "db/models/issue.py",
+      "lines": [
+        742
+      ],
+      "verb": "create",
+      "status": "excluded",
+      "exclusion": "birth-state",
+      "reason": "Creation carrying a state. The door does not govern birth-state in v1."
+    },
+    {
+      "file": "bgtasks/dummy_data_task.py",
+      "lines": [
+        305
+      ],
+      "verb": "create",
+      "status": "excluded",
+      "exclusion": "fixture",
+      "reason": "Generates demo rows. Not a behavioural writer; excluded as a fixture by scope decision (Aria), recorded here so the exclusion is visible rather than assumed."
+    },
+    {
+      "file": "bgtasks/workspace_seed_task.py",
+      "lines": [
+        397
+      ],
+      "verb": "create",
+      "status": "excluded",
+      "exclusion": "fixture",
+      "reason": "Seeds a new workspace from a fixture file. Excluded as a fixture. NOTE: this site was invisible to the census until the scanner learned to see direct model constructors \u2014 it is the reason that fix exists."
+    },
+    {
+      "file": "bgtasks/issue_version_sync.py",
+      "lines": [
+        144
+      ],
+      "verb": "create",
+      "status": "excluded",
+      "exclusion": "mirror",
+      "reason": "Copies an issue's state onto an IssueVersion snapshot. A mirror of a decision already made, not a decision \u2014 routing it through the door would record a second outcome for one transition."
+    },
+    {
+      "file": "app/serializers/issue.py",
+      "lines": [
+        84
+      ],
+      "verb": "transition",
+      "status": "converge",
+      "reason": "THE KNOWN BYPASS (Rowan 3860, EXECUTED on the dev board): IssueCreateSerializer exposes a writable state_id bound to `state`, and the app update route calls serializer.save() at app/views/issue/base.py:668-670. He drove the real serializer at the exact head \u2014 it accepted state_id, changed the stored state, and left BoardOperation.objects.count() == 0 while all 20 census tests passed. NOT YET CONVERGED: routing the primary issue-update path through the door is a real change to the main UI write path, and I will not rewrite it blind with no local test runner. Recorded as a live target rather than left invisible, which is the whole point of this file. The census now SEES this shape \u2014 a writable serializer field bound to state \u2014 so the declared serializer.save() blind spot no longer hides its known instance."
+    },
+    {
+      "file": "app/serializers/draft.py",
+      "lines": [
+        35
+      ],
+      "verb": "transition",
+      "status": "excluded",
+      "exclusion": "not-a-work-item",
+      "reason": "Same writable-state-field shape, found by the new detection, but on the DRAFT serializer. A draft is not a work item until published, and its state assignment is birth-state defaulting (see the db/models/draft.py entries). Excluded on that basis, recorded so the exclusion is visible rather than an absence."
+    },
+    {
+      "file": "api/serializers/issue.py",
+      "lines": [
+        875
+      ],
+      "verb": "transition",
+      "status": "excluded",
+      "exclusion": "read-only-usage",
+      "reason": "IssueExpandSerializer \u2014 a read/expand shape. EVIDENCE AND ITS BOUND: no call site passes `data=` to this serializer, found by grep over plane/ \u2014 a bounded check, not proof. It cannot see a call assembled dynamically or one that writes through a subclass. Recorded with the bound rather than asserted as read-only, so the next reader knows what was actually checked.",
+      "surfaced_by": "Meta-declared scan (Vex 3863)"
+    },
+    {
+      "file": "app/serializers/draft.py",
+      "lines": [
+        52
+      ],
+      "verb": "transition",
+      "status": "excluded",
+      "exclusion": "not-a-work-item",
+      "reason": "DraftIssueCreateSerializer \u2014 drafts are not work items until published, and this is a creation shape besides. EVIDENCE AND ITS BOUND: no call site passes `data=` to this serializer, found by grep over plane/ \u2014 a bounded check, not proof. It cannot see a call assembled dynamically or one that writes through a subclass. Recorded with the bound rather than asserted as read-only, so the next reader knows what was actually checked.",
+      "surfaced_by": "Meta-declared scan (Vex 3863)"
+    },
+    {
+      "file": "app/serializers/intake.py",
+      "lines": [
+        200
+      ],
+      "verb": "transition",
+      "status": "excluded",
+      "exclusion": "read-only-usage",
+      "reason": "IssueStateIntakeSerializer \u2014 display shape for intake state. EVIDENCE AND ITS BOUND: no call site passes `data=` to this serializer, found by grep over plane/ \u2014 a bounded check, not proof. It cannot see a call assembled dynamically or one that writes through a subclass. Recorded with the bound rather than asserted as read-only, so the next reader knows what was actually checked.",
+      "surfaced_by": "Meta-declared scan (Vex 3863)"
+    },
+    {
+      "file": "app/serializers/issue.py",
+      "lines": [
+        737
+      ],
+      "verb": "transition",
+      "status": "excluded",
+      "exclusion": "read-only-usage",
+      "reason": "IssueStateSerializer \u2014 display shape. EVIDENCE AND ITS BOUND: no call site passes `data=` to this serializer, found by grep over plane/ \u2014 a bounded check, not proof. It cannot see a call assembled dynamically or one that writes through a subclass. Recorded with the bound rather than asserted as read-only, so the next reader knows what was actually checked.",
+      "surfaced_by": "Meta-declared scan (Vex 3863)"
+    },
+    {
+      "file": "app/serializers/issue.py",
+      "lines": [
+        972
+      ],
+      "verb": "transition",
+      "status": "excluded",
+      "exclusion": "mirror",
+      "reason": "IssueVersionDetailSerializer \u2014 serialises an IssueVersion SNAPSHOT, not an Issue, and is called as IssueVersionDetailSerializer(issue_version) with no data=. EVIDENCE AND ITS BOUND: no call site passes `data=` to this serializer, found by grep over plane/ \u2014 a bounded check, not proof. It cannot see a call assembled dynamically or one that writes through a subclass. Recorded with the bound rather than asserted as read-only, so the next reader knows what was actually checked.",
+      "surfaced_by": "Meta-declared scan (Vex 3863)"
+    },
+    {
+      "file": "app/serializers/workspace.py",
+      "lines": [
+        203
+      ],
+      "verb": "transition",
+      "status": "excluded",
+      "exclusion": "read-only-usage",
+      "reason": "IssueRecentVisitSerializer \u2014 recent-visit display. EVIDENCE AND ITS BOUND: no call site passes `data=` to this serializer, found by grep over plane/ \u2014 a bounded check, not proof. It cannot see a call assembled dynamically or one that writes through a subclass. Recorded with the bound rather than asserted as read-only, so the next reader knows what was actually checked.",
+      "surfaced_by": "Meta-declared scan (Vex 3863)"
+    },
+    {
+      "file": "space/serializer/intake.py",
+      "lines": [
+        43
+      ],
+      "verb": "transition",
+      "status": "excluded",
+      "exclusion": "read-only-usage",
+      "reason": "IssueStateIntakeSerializer (space) \u2014 public display shape. EVIDENCE AND ITS BOUND: no call site passes `data=` to this serializer, found by grep over plane/ \u2014 a bounded check, not proof. It cannot see a call assembled dynamically or one that writes through a subclass. Recorded with the bound rather than asserted as read-only, so the next reader knows what was actually checked.",
+      "surfaced_by": "Meta-declared scan (Vex 3863)"
+    },
+    {
+      "file": "space/serializer/issue.py",
+      "lines": [
+        179
+      ],
+      "verb": "transition",
+      "status": "excluded",
+      "exclusion": "read-only-usage",
+      "reason": "IssueSerializer (space) \u2014 public read shape; Meta lists read_only_fields explicitly. EVIDENCE AND ITS BOUND: no call site passes `data=` to this serializer, found by grep over plane/ \u2014 a bounded check, not proof. It cannot see a call assembled dynamically or one that writes through a subclass. Recorded with the bound rather than asserted as read-only, so the next reader knows what was actually checked.",
+      "surfaced_by": "Meta-declared scan (Vex 3863)"
+    },
+    {
+      "file": "space/serializer/issue.py",
+      "lines": [
+        261
+      ],
+      "verb": "transition",
+      "status": "excluded",
+      "exclusion": "birth-state",
+      "reason": "IssueCreateSerializer (space) \u2014 birth-state on the public intake creation path, the same verb the door does not govern in v1. EVIDENCE AND ITS BOUND: no call site passes `data=` to this serializer, found by grep over plane/ \u2014 a bounded check, not proof. It cannot see a call assembled dynamically or one that writes through a subclass. Recorded with the bound rather than asserted as read-only, so the next reader knows what was actually checked.",
+      "surfaced_by": "Meta-declared scan (Vex 3863)"
+    },
+    {
+      "file": "app/serializers/issue.py",
+      "lines": [
+        103
+      ],
+      "verb": "transition",
+      "status": "converge",
+      "reason": "IssueCreateSerializer.Meta \u2014 the SAME class as the executed bypass at line 84, surfaced a second time by the Meta-declared scan. Recorded separately because the inventory is site-granular and both the declared field and the Meta exposure make it writable. Converges with the route.",
+      "surfaced_by": "Meta-declared scan (Vex 3863)"
+    }
+  ],
+  "blind_spots": [
+    "serializer.save() where the serializer sets state from validated_data \u2014 the state never appears at the call site",
+    "**kwargs expansion, e.g. Issue.objects.create(**payload)",
+    "setattr(issue, 'state', ...) and any string-keyed attribute write",
+    "raw SQL and RawQuerySet",
+    "signals, and writes inside upstream Plane code this repository does not own",
+    "plain `import plane.board.service` is not walked by the convergence matcher \u2014 a real call through that idiom reads as unconverged (fail-safe; declared, not fixed)",
+    "the convergence matcher trusts the import binding, so post-import rebinding or local shadowing can false-positive \u2014 deliberately not fixed, scope tracking being real machinery against an implausible case"
+  ],
+  "_blind_spot_note": [
+    "A site reached ONLY through one of the shapes above will not appear in the",
+    "census and therefore cannot appear here. This list is the honest bound on",
+    "the claim: convergence proven by this file is convergence of what a static",
+    "scan can see, not of everything that exists."
+  ]
+}

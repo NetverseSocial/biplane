@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 
+export * from "./apply-progress";
 export * from "./array";
 export * from "./attachment";
 export * from "./auth";
@@ -36,6 +37,7 @@ export * from "./tab-indices";
 export * from "./theme";
 export { resolveGeneralTheme } from "./theme-legacy";
 export * from "./url";
+export * from "./signup-outcome";
 export * from "./validation";
 export * from "./work-item-filters";
 export * from "./work-item";

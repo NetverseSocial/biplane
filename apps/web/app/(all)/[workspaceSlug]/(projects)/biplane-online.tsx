@@ -34,7 +34,9 @@ export function BiplaneOnline() {
   return (
     <div
       title={`Biplane · ${label}`}
-      className="flex flex-shrink-0 items-center gap-1.5 rounded-sm bg-layer-2 px-2.5 py-1.5"
+      // John's ruling (2026-08-16): this is an INDICATOR, not a control — no
+      // box, no button look. Name + dot, nothing that invites a click.
+      className="flex flex-shrink-0 items-center gap-1.5 px-1"
       aria-label={`Biplane is ${label}`}
     >
       <BiplaneLogo size={16} />

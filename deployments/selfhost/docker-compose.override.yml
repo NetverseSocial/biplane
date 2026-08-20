@@ -10,14 +10,157 @@ services:
     image: ${BIPLANE_ADMIN_IMAGE:-biplane-admin:latest}
   api:
     image: ${BIPLANE_BACKEND_IMAGE:-biplane-backend:latest}
+    # The host name your BIPLANE_FORGEJO_URL, FORGEJO_BASE_URL and
+    # BIPLANE_APPLY_SERVICE_URL point at is the DOCKER HOST, not a container:
+    # Docker's embedded DNS cannot resolve it (an mDNS `.local` name resolves on
+    # the LAN, never inside a container), so the update check and bridge outbound
+    # calls fail DNS and silently degrade. Map that name to the host-gateway.
+    # env.example's host-side URL note ("with the extra_hosts host-gateway
+    # mapping") refers to exactly this. SELFHOST_HOST_ALIAS defaults to the
+    # standard host.docker.internal for the zero-config case.
+    extra_hosts:
+      - "${SELFHOST_HOST_ALIAS:-host.docker.internal}:host-gateway"
+    environment:
+      # Forgejo git bridge (see README: Git bridge setup)
+      FORGEJO_WEBHOOK_SECRET: ${FORGEJO_WEBHOOK_SECRET:-}
+      FORGEJO_INSTANCE_ID: ${FORGEJO_INSTANCE_ID:-}
+      FORGEJO_BRIDGE_REPO_MAP: ${FORGEJO_BRIDGE_REPO_MAP:-}
+      # biplane (BIP-36): BIPLANE_BUILD is deliberately NOT listed here.
+      # It is baked into the backend image by build-images.sh (Dockerfile.api
+      # ARG/ENV). Listing it as `${BIPLANE_BUILD:-}` — which is what I first
+      # wrote — sets it to the EMPTY STRING when absent from .env, overriding
+      # the image value, so a stock reviewed build always stored NULL
+      # (Morrow RC 3271). Compose env wins over image ENV; the only way to
+      # preserve a baked value is to not mention it.
+      # biplane (BIP-32): update check reads OUR releases, never upstream Plane.
+      BIPLANE_FORGEJO_URL: ${BIPLANE_FORGEJO_URL:-}
+      BIPLANE_FORGEJO_REPO: ${BIPLANE_FORGEJO_REPO:-example/biplane}
+      BIPLANE_FORGEJO_RELEASE_TOKEN: ${BIPLANE_FORGEJO_RELEASE_TOKEN:-}
+      BIPLANE_GITHUB_REPO: ${BIPLANE_GITHUB_REPO:-NetverseSocial/biplane}
+      BIPLANE_UPDATE_ALLOWED_ORIGINS: ${BIPLANE_UPDATE_ALLOWED_ORIGINS:-}
+      FORGEJO_BASE_URL: ${FORGEJO_BASE_URL:-}
+      FORGEJO_BRIDGE_API_TOKEN: ${FORGEJO_BRIDGE_API_TOKEN:-}
+      # Write credential for the bridge REPLY path, deliberately separate from the
+      # read token above, which is issued read-only. Absent it the bridge stays silent.
+      FORGEJO_BRIDGE_WRITE_TOKEN: ${FORGEJO_BRIDGE_WRITE_TOKEN:-}
+      BRIDGE_ALLOW_UNSIGNED_BODY_FORGES: ${BRIDGE_ALLOW_UNSIGNED_BODY_FORGES:-0}
+      GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET:-}
+      GITLAB_WEBHOOK_TOKEN: ${GITLAB_WEBHOOK_TOKEN:-}
+      GITHUB_INSTANCE_ID: ${GITHUB_INSTANCE_ID:-}
+      GITLAB_INSTANCE_ID: ${GITLAB_INSTANCE_ID:-}
+      # BIP-69 one-click apply (the Update button): the api forwards a flagged
+      # tag to the host-side applier. BOTH must be set or the apply endpoints
+      # answer 501 and only the manual path shows. The URL is reached from inside
+      # this container via the host-gateway extra_hosts mapping above; on a host
+      # with a firewall the docker-bridge -> host:APPLY_SERVICE_PORT path must be
+      # allowed (see apply-service/README.md "Firewall"). The api forwards for the
+      # interactive button AND the worker for AUTOMATIC-mode applies (beat only
+      # schedules; run_update_check + the auto hook run on the worker), so BOTH get
+      # these — beat-worker and migrator do not.
+      BIPLANE_APPLY_SERVICE_URL: ${BIPLANE_APPLY_SERVICE_URL:-}
+      BIPLANE_APPLY_SERVICE_TOKEN: ${BIPLANE_APPLY_SERVICE_TOKEN:-}
   worker:
     image: ${BIPLANE_BACKEND_IMAGE:-biplane-backend:latest}
+    # The worker executes the scheduled update check and the reconciler's
+    # truncated-push range fetch — both reach Forgejo on the docker host by a
+    # name the container cannot resolve. Same host-gateway mapping as api.
+    extra_hosts:
+      - "${SELFHOST_HOST_ALIAS:-host.docker.internal}:host-gateway"
+    environment:
+      # Scoped to ACTUAL consumers (Morrow RC 3484 #3; corrected per Aria RC
+      # 3518 — an earlier revision granted the worker the three instance ids
+      # on the claim that the reconciler computes keys. It does not: semantic
+      # keys are minted ONCE at ingest in ForgejoWebhookEndpoint.post (api),
+      # and process_delivery references no key/instance machinery, verified by
+      # AST and by source read. The worker gets what the reconciler actually
+      # uses — workspace scope → repo map; truncated-push range fetch →
+      # bridge API creds — and NO webhook secrets, no signature-policy flag,
+      # no instance ids.
+      FORGEJO_BRIDGE_REPO_MAP: ${FORGEJO_BRIDGE_REPO_MAP:-}
+      FORGEJO_BASE_URL: ${FORGEJO_BASE_URL:-}
+      FORGEJO_BRIDGE_API_TOKEN: ${FORGEJO_BRIDGE_API_TOKEN:-}
+      # Write credential for the bridge REPLY path, deliberately separate from the
+      # read token above, which is issued read-only. Absent it the bridge stays silent.
+      FORGEJO_BRIDGE_WRITE_TOKEN: ${FORGEJO_BRIDGE_WRITE_TOKEN:-}
+      # M5.2 (BIP-41): the WORKER executes the scheduled update check (beat
+      # only schedules it), so the release-source config lives here too.
+      # Unset values render as an honest UNKNOWN banner, never a crash.
+      BIPLANE_FORGEJO_URL: ${BIPLANE_FORGEJO_URL:-}
+      BIPLANE_FORGEJO_REPO: ${BIPLANE_FORGEJO_REPO:-example/biplane}
+      BIPLANE_FORGEJO_RELEASE_TOKEN: ${BIPLANE_FORGEJO_RELEASE_TOKEN:-}
+      BIPLANE_GITHUB_REPO: ${BIPLANE_GITHUB_REPO:-NetverseSocial/biplane}
+      BIPLANE_UPDATE_ALLOWED_ORIGINS: ${BIPLANE_UPDATE_ALLOWED_ORIGINS:-}
+      # AUTOMATIC-mode applies execute on the worker (the api note above has the
+      # why and the firewall caveat). Without these, auto mode logs "no applier
+      # configured" every hour, silently.
+      BIPLANE_APPLY_SERVICE_URL: ${BIPLANE_APPLY_SERVICE_URL:-}
+      BIPLANE_APPLY_SERVICE_TOKEN: ${BIPLANE_APPLY_SERVICE_TOKEN:-}
   beat-worker:
     image: ${BIPLANE_BACKEND_IMAGE:-biplane-backend:latest}
+    # NO bridge environment at all (Morrow RC 3484 #3): beat only SCHEDULES
+    # tasks — it authenticates no webhooks, computes no semantic keys, fetches
+    # no push ranges, and runs no migration. Every bridge var it previously
+    # held was the global-check tail still shaping deployment.
   migrator:
     image: ${BIPLANE_BACKEND_IMAGE:-biplane-backend:latest}
+    environment:
+      # The migrator RUNS 0128, which keys history under the per-forge instance
+      # id — so it receives the INSTANCE IDs (a real consumer of the contract).
+      # It does NOT receive webhook credentials: it has no reason to hold them,
+      # and the startup config check that needs them runs at the API service
+      # (Morrow: scope env to actual consumers).
+      FORGEJO_INSTANCE_ID: ${FORGEJO_INSTANCE_ID:-}
+      GITHUB_INSTANCE_ID: ${GITHUB_INSTANCE_ID:-}
+      GITLAB_INSTANCE_ID: ${GITLAB_INSTANCE_ID:-}
   proxy:
     # biplane: mount our Caddyfile so the admin panel routes at /admin, not /god-mode.
     # The upstream proxy image is otherwise unchanged.
+    image: makeplane/plane-proxy@sha256:b4f8bb6998052dcd1488171a90d473674cefbc6ec77114d5095b48c805f4ad27
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+
+  # ---------------------------------------------------------------------------
+  # DIGEST PINS for the images we do NOT build (John, 2026-08-12).
+  #
+  # Every service above runs an image built from this repo by build-images.sh.
+  # These six do not: they are pulled from registries owned by other people,
+  # and upstream compose names them by MUTABLE TAG. `minio/minio:latest` is the
+  # plainest case — the bytes behind it change without warning and a
+  # `docker compose pull` silently swaps the running binary.
+  #
+  # A tag is a pointer someone else can repoint; a digest IS the content, and
+  # the registry verifies it on pull — so a substituted image fails to pull
+  # instead of starting.
+  #
+  # LITERAL, not `${PLANE_*_IMAGE:-...}` (Rowan RC 3369, blocker 2). The first
+  # revision gave each pin an environment override, and Rowan executed the
+  # counterexample: `PLANE_DB_IMAGE=postgres:15.7-alpine docker compose config`
+  # resolves that mutable tag. A control any environment variable can silently
+  # switch off is a default, not a control — and the claim I wrote for it,
+  # "a substituted image now fails to pull", was simply false whenever an
+  # override was set. Those six variables were also indirection with no caller:
+  # invented here, referenced nowhere, documented nowhere else.
+  #
+  # An operator who needs a different image edits the line. That edit is a repo
+  # change and therefore reviewable, which is the entire point of the control.
+  #
+  # Resolved and verified against the registry 2026-08-12; each digest returned
+  # HTTP 200 for a manifest fetch BY DIGEST, so every pin here is pullable.
+  # Tag equivalents, for the record:
+  #   makeplane/plane-live:v1.3.1     makeplane/plane-proxy:v1.3.1
+  #   postgres:15.7-alpine            valkey/valkey:7.2.11-alpine
+  #   rabbitmq:3.13.6-management-alpine       minio/minio:latest
+  #
+  # To move one deliberately: resolve the new digest, verify it fetches by
+  # digest, and edit the pin here.
+  # ---------------------------------------------------------------------------
+  live:
+    image: makeplane/plane-live@sha256:2073b6950a394545ea1db6ed4157e951ad5a6e1881e74f4f9238ace6c35bbf3d
+  plane-db:
+    image: postgres@sha256:468d34fefd6338031787c7b8e94078975b3aaf4d66c7ead25c39cd3ba46a15c6
+  plane-redis:
+    image: valkey/valkey@sha256:10328d00120dc14fbc87b2ed61b7677ddbb0d011e705361b4788329a0ec69a93
+  plane-mq:
+    image: rabbitmq@sha256:611107e29cce05c2acd968325d5dcbde7e2fee404970f1ead75fdb22be2821b3
+  plane-minio:
+    image: minio/minio@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e

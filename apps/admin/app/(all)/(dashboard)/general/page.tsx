@@ -29,6 +29,6 @@ function GeneralPage() {
   );
 }
 
-export const meta: Route.MetaFunction = () => [{ title: "General Settings - God Mode" }];
+export const meta: Route.MetaFunction = () => [{ title: "General Settings - Biplane Admin" }];
 
 export default observer(GeneralPage);

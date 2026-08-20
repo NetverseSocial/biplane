@@ -625,11 +625,22 @@ class TransferCycleIssueEndpoint(BaseAPIView):
 class CycleUserPropertiesEndpoint(BaseAPIView):
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST])
     def patch(self, request, slug, project_id, cycle_id):
-        cycle_properties = CycleUserProperties.objects.get(
-            user=request.user,
-            cycle_id=cycle_id,
-            project_id=project_id,
-            workspace__slug=slug,
+        # biplane (BIP-28): this used to be a bare .get(), which only ever
+        # worked because the GET above created the row first. Now that the
+        # GET is read-only, the first PATCH must create it here — otherwise
+        # a user who changes a filter before one was ever stored gets a
+        # DoesNotExist.
+        #
+        # The old .get() carried workspace__slug, so a cycle_id belonging to
+        # another project or workspace simply matched nothing. A create does
+        # NOT inherit that safety: it would happily bind a foreign cycle_id
+        # to the routed project. So the child is resolved against the route
+        # first, and an id that does not live there is a 404 — never a row.
+        if not Cycle.objects.filter(pk=cycle_id, project_id=project_id, workspace__slug=slug).exists():
+            return Response({"error": "Cycle not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        cycle_properties, _ = CycleUserProperties.objects.get_or_create(
+            user=request.user, cycle_id=cycle_id, project_id=project_id
         )
 
         cycle_properties.filters = request.data.get("filters", cycle_properties.filters)
@@ -645,11 +656,26 @@ class CycleUserPropertiesEndpoint(BaseAPIView):
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST])
     def get(self, request, slug, project_id, cycle_id):
-        cycle_properties, _ = CycleUserProperties.objects.get_or_create(
+        # biplane (BIP-28): a GET must not write — see the note in
+        # issue/base.py. The unsaved instance serialises to the same
+        # defaults; the POST/PATCH on this endpoint persists it.
+        #
+        # The fallback must not invent defaults for a cycle that does not
+        # live on this route: that would answer 200 for another workspace's
+        # id and tell the caller it exists.
+        if not Cycle.objects.filter(pk=cycle_id, project_id=project_id, workspace__slug=slug).exists():
+            return Response({"error": "Cycle not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        cycle_properties = CycleUserProperties.objects.filter(
             user=request.user,
             project_id=project_id,
             cycle_id=cycle_id,
             workspace__slug=slug,
+        # id=None: see the note in issue/base.py — an unsaved BaseModel
+        # would otherwise serialise a phantom uuid for a row that does not
+        # exist.
+        ).first() or CycleUserProperties(
+            id=None, user=request.user, project_id=project_id, cycle_id=cycle_id
         )
         serializer = CycleUserPropertiesSerializer(cycle_properties)
         return Response(serializer.data, status=status.HTTP_200_OK)

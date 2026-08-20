@@ -17,7 +17,14 @@ import type { IUser, TUserProfile, TOnboardingSteps } from "@plane/types";
 // ui
 import { Input, PasswordStrengthIndicator, Spinner } from "@plane/ui";
 // components
-import { cn, getFileURL, getPasswordStrength, validatePersonName } from "@plane/utils";
+import {
+  cn,
+  getFileURL,
+  getPasswordStrength,
+  normalizePersonName,
+  validateOptionalPersonName,
+  validatePersonName,
+} from "@plane/utils";
 import { UserImageUploadModal } from "@/components/core/modals/user-image-upload-modal";
 // hooks
 import { useUser, useUserProfile } from "@/hooks/store/user";
@@ -121,8 +128,8 @@ export const ProfileSetup = observer(function ProfileSetup(props: Props) {
 
   const handleSubmitProfileSetup = async (formData: TProfileSetupFormValues) => {
     const userDetailsPayload: Partial<IUser> = {
-      first_name: formData.first_name,
-      last_name: formData.last_name,
+      first_name: normalizePersonName(formData.first_name),
+      last_name: normalizePersonName(formData.last_name),
       avatar_url: formData.avatar_url ?? undefined,
     };
     const profileUpdatePayload: Partial<TUserProfile> = {
@@ -155,8 +162,8 @@ export const ProfileSetup = observer(function ProfileSetup(props: Props) {
 
   const handleSubmitUserDetail = async (formData: TProfileSetupFormValues) => {
     const userDetailsPayload: Partial<IUser> = {
-      first_name: formData.first_name,
-      last_name: formData.last_name,
+      first_name: normalizePersonName(formData.first_name),
+      last_name: normalizePersonName(formData.last_name),
       avatar_url: formData.avatar_url ?? undefined,
     };
     try {
@@ -330,18 +337,29 @@ export const ProfileSetup = observer(function ProfileSetup(props: Props) {
                   )}
                 </div>
                 <div className="space-y-1">
-                  <label
-                    className="text-13 font-medium text-tertiary after:ml-0.5 after:text-danger-primary after:content-['*']"
-                    htmlFor="last_name"
-                  >
+                  {/*
+                    biplane (BIP-21): last name is OPTIONAL. The server treats it
+                    that way (`name_error_code(last_name, required=False)`) and so
+                    does the sign-up form, but this onboarding step demanded it and
+                    marked it with a required asterisk. Onboarding is not skippable,
+                    so a single-name user — every agent account we have — could not
+                    get out of first-run at all. Asterisk and rule both removed to
+                    match the server.
+                  */}
+                  <label className="text-13 font-medium text-tertiary" htmlFor="last_name">
                     Last name
                   </label>
                   <Controller
                     control={control}
                     name="last_name"
                     rules={{
-                      required: "Last name is required",
-                      validate: validatePersonName,
+                      // Only validate a last name that was actually supplied —
+                      // validatePersonName("") returns "Name is required", which
+                      // would re-impose the requirement this just removed.
+                      // Trim first: the server does (`str(value or "").strip()`)
+                      // and treats blank-after-trim as absent, so a field holding
+                      // only spaces must be absent here too, not an error.
+                      validate: validateOptionalPersonName,
                       maxLength: {
                         value: 50,
                         message: "Last name must be within 50 characters.",

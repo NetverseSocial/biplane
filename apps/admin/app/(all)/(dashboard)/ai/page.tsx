@@ -45,6 +45,6 @@ const InstanceAIPage = observer(function InstanceAIPage(_props: Route.ComponentP
   );
 });
 
-export const meta: Route.MetaFunction = () => [{ title: "Artificial Intelligence Settings - God Mode" }];
+export const meta: Route.MetaFunction = () => [{ title: "Artificial Intelligence Settings - Biplane Admin" }];
 
 export default InstanceAIPage;

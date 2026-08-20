@@ -22,6 +22,8 @@ export const SPACE_SITE_KEYWORDS =
 export const SPACE_SITE_URL = "https://biplane.dev/";
 export const SPACE_TWITTER_USER_NAME = "";
 
-// biplane: OUR release number — single source of truth for the fork version;
-// package.json stays at the upstream Plane version we are built on.
-export const BIPLANE_VERSION = "1.0.0";
+// biplane: there is deliberately NO fork-version constant here. A
+// hand-maintained number claiming to be the single source of truth shipped
+// as "1.0.0" while v1.1.0 was deployed — unambiguous, specific, and false.
+// The release version is baked at image build time (VITE_BIPLANE_VERSION,
+// from BIPLANE_RELEASE_TAG); surfaces read that or say "dev build".

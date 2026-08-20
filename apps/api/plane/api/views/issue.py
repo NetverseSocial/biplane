@@ -25,6 +25,7 @@ from django.db.models import (
     Subquery,
 )
 
+from django.db import transaction
 from django.utils import timezone
 from django.conf import settings
 
@@ -41,6 +42,7 @@ from drf_spectacular.utils import (
 )
 
 # Module imports
+from plane.api.audit import enqueue_audit
 from plane.api.serializers import (
     IssueAttachmentSerializer,
     IssueActivitySerializer,
@@ -65,6 +67,7 @@ from plane.app.permissions import (
     ProjectMemberPermission,
 )
 from plane.bgtasks.issue_activities_task import issue_activity
+from plane.api.write_identity import InvalidAssertedIdentity, creation_identity
 from plane.db.models import (
     Issue,
     IssueActivity,
@@ -81,7 +84,7 @@ from plane.db.models import (
 from plane.settings.storage import S3Storage
 from plane.utils.path_validator import sanitize_filename
 from plane.bgtasks.storage_metadata_task import get_asset_object_metadata
-from .base import BaseAPIView
+from .base import BaseAPIView, dispatch_after_commit
 from plane.utils.host import base_host
 from plane.utils.issue_relation_mapper import get_actual_relation
 from plane.bgtasks.webhook_task import model_activity
@@ -462,34 +465,78 @@ class IssueListCreateAPIEndpoint(BaseAPIView):
                     status=status.HTTP_409_CONFLICT,
                 )
 
-            serializer.save()
-            # Refetch the issue
-            issue = Issue.objects.filter(workspace__slug=slug, project_id=project_id, pk=serializer.data["id"]).first()
-            issue.created_at = request.data.get("created_at", timezone.now())
-            issue.created_by_id = request.data.get("created_by", request.user.id)
-            issue.save(update_fields=["created_at", "created_by"])
+            # BIP-18: the mutation commits FIRST; dispatch is post-commit and
+            # best-effort. Rollback drops the callbacks; a broker failure after
+            # commit can still lose the dispatch (PR 23's outbox is the
+            # durability step). What on_commit fixes is narrower and real:
+            #
+            # Previously .delay() fired the instant it was reached, outside any
+            # transaction. Three things followed, all reachable: the worker could
+            # pick the task up before the row committed and read stale or absent
+            # data; a write that later rolled back still emitted an audit record
+            # for a change that never happened; and neither had any compensating
+            # path, because the queue message was already gone.
+            #
+            # on_commit defers the dispatch until the transaction actually lands,
+            # and drops it entirely if the transaction does not.
+            # The authoritative identity is computed BEFORE the serializer
+            # writes anything (Morrow 10161): IssueSerializer.create copies
+            # issue.created_by_id into every IssueAssignee/IssueLabel row it
+            # bulk-creates, so stamping after the fact left child audit rows
+            # carrying the pre-override caller. And a bad assertion is a
+            # controlled 400 with zero writes, not a deferred FK explosion.
+            try:
+                stamp_actor_id, stamped_at = creation_identity(request)
+            except InvalidAssertedIdentity as e:
+                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            with transaction.atomic():
+                # created_by flows into Issue.objects.create and from there
+                # into the child rows. created_at cannot (auto_now_add wins on
+                # INSERT), hence the post-save update below.
+                serializer.save(created_by_id=stamp_actor_id)
+                # Refetch by instance pk, NOT serializer.data["id"]: DRF
+                # caches .data on its first access, so touching it here would
+                # freeze the representation before created_at lands.
+                issue = Issue.objects.filter(
+                    workspace__slug=slug, project_id=project_id, pk=serializer.instance.pk
+                ).first()
+                issue.created_at = stamped_at
+                issue.save(update_fields=["created_at"])
+                # The STORED row is the response authority: stamp the instance
+                # the serializer will read, before its first representation.
+                serializer.instance.created_by_id = issue.created_by_id
+                serializer.instance.created_at = issue.created_at
 
-            # Track the issue
-            issue_activity.delay(
-                type="issue.activity.created",
-                requested_data=json.dumps(self.request.data, cls=DjangoJSONEncoder),
-                actor_id=str(request.user.id),
-                issue_id=str(serializer.data.get("id", None)),
-                project_id=str(project_id),
-                current_instance=None,
-                epoch=int(timezone.now().timestamp()),
-            )
+                issue_id = str(issue.pk)
+                requested_data = json.dumps(self.request.data, cls=DjangoJSONEncoder)
+                actor_id = str(request.user.id)
+                epoch = int(timezone.now().timestamp())
+                origin = base_host(request=request, is_app=True)
 
-            # Send the model activity
-            model_activity.delay(
-                model_name="issue",
-                model_id=str(serializer.data["id"]),
-                requested_data=request.data,
-                current_instance=None,
-                actor_id=request.user.id,
-                slug=slug,
-                origin=base_host(request=request, is_app=True),
-            )
+                # Track the issue (durable: a row in this transaction, drained
+                # by the outbox worker — see enqueue_audit)
+                enqueue_audit(
+                    "issue_activity",
+                    type="issue.activity.created",
+                    requested_data=requested_data,
+                    actor_id=actor_id,
+                    issue_id=issue_id,
+                    project_id=str(project_id),
+                    current_instance=None,
+                    epoch=epoch,
+                )
+
+                # Send the model activity
+                dispatch_after_commit(
+                    model_activity,
+                    model_name="issue",
+                    model_id=issue_id,
+                    requested_data=request.data,
+                    current_instance=None,
+                    actor_id=request.user.id,
+                    slug=slug,
+                    origin=origin,
+                )
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -629,7 +676,7 @@ class IssueDetailAPIEndpoint(BaseAPIView):
                     # If the serializer is valid, save the issue and dispatch
                     # the update issue activity worker event.
                     serializer.save()
-                    issue_activity.delay(
+                    enqueue_audit("issue_activity",
                         type="issue.activity.updated",
                         requested_data=requested_data,
                         actor_id=str(request.user.id),
@@ -639,7 +686,7 @@ class IssueDetailAPIEndpoint(BaseAPIView):
                         epoch=int(timezone.now().timestamp()),
                     )
                     # Send the model activity for webhook dispatch
-                    model_activity.delay(
+                    dispatch_after_commit(model_activity,
                         model_name="issue",
                         model_id=str(issue.id),
                         requested_data=request.data,
@@ -672,34 +719,42 @@ class IssueDetailAPIEndpoint(BaseAPIView):
                 # If the serializer is valid, save the issue and dispatch the
                 # issue activity worker event as created
                 if serializer.is_valid():
-                    serializer.save()
-                    # Refetch the issue
+                    # Identity BEFORE the serializer writes (Morrow 10161):
+                    # child assignee/label rows copy issue.created_by_id at
+                    # creation, and a bad assertion must be a controlled 400
+                    # with zero writes.
+                    try:
+                        stamp_actor_id, stamped_at = creation_identity(request)
+                    except InvalidAssertedIdentity as e:
+                        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+                    serializer.save(created_by_id=stamp_actor_id)
+                    # Refetch by instance pk, NOT serializer.data: DRF caches
+                    # .data on first access (Morrow, PR #22 preflight).
                     issue = Issue.objects.filter(
                         workspace__slug=slug,
                         project_id=project_id,
-                        pk=serializer.data["id"],
+                        pk=serializer.instance.pk,
                     ).first()
+                    # created_at cannot ride the INSERT (auto_now_add wins).
+                    issue.created_at = stamped_at
+                    issue.save(update_fields=["created_at"])
+                    # The STORED row is the response authority.
+                    serializer.instance.created_by_id = issue.created_by_id
+                    serializer.instance.created_at = issue.created_at
 
-                    # If any of the created_at or created_by is present, update
-                    # the issue with the provided data, else return with the
-                    # default states given.
-                    issue.created_at = request.data.get("created_at", timezone.now())
-                    issue.created_by_id = request.data.get("created_by", request.user.id)
-                    issue.save(update_fields=["created_at", "created_by"])
-
-                    issue_activity.delay(
+                    enqueue_audit("issue_activity",
                         type="issue.activity.created",
                         requested_data=json.dumps(self.request.data, cls=DjangoJSONEncoder),
                         actor_id=str(request.user.id),
-                        issue_id=str(serializer.data.get("id", None)),
+                        issue_id=str(issue.pk),
                         project_id=str(project_id),
                         current_instance=None,
                         epoch=int(timezone.now().timestamp()),
                     )
                     # Send the model activity for webhook dispatch
-                    model_activity.delay(
+                    dispatch_after_commit(model_activity,
                         model_name="issue",
-                        model_id=str(serializer.data["id"]),
+                        model_id=str(issue.pk),
                         requested_data=request.data,
                         current_instance=None,
                         actor_id=request.user.id,
@@ -772,7 +827,7 @@ class IssueDetailAPIEndpoint(BaseAPIView):
                 )
 
             serializer.save()
-            issue_activity.delay(
+            enqueue_audit("issue_activity",
                 type="issue.activity.updated",
                 requested_data=requested_data,
                 actor_id=str(request.user.id),
@@ -782,7 +837,7 @@ class IssueDetailAPIEndpoint(BaseAPIView):
                 epoch=int(timezone.now().timestamp()),
             )
             # Send the model activity for webhook dispatch
-            model_activity.delay(
+            dispatch_after_commit(model_activity,
                 model_name="issue",
                 model_id=str(pk),
                 requested_data=request.data,
@@ -829,7 +884,7 @@ class IssueDetailAPIEndpoint(BaseAPIView):
             )
         current_instance = json.dumps(IssueSerializer(issue).data, cls=DjangoJSONEncoder)
         issue.delete()
-        issue_activity.delay(
+        enqueue_audit("issue_activity",
             type="issue.activity.deleted",
             requested_data=json.dumps({"issue_id": str(pk)}),
             actor_id=str(request.user.id),
@@ -1161,12 +1216,20 @@ class IssueLinkListCreateAPIEndpoint(BaseAPIView):
         """
         serializer = IssueLinkCreateSerializer(data=request.data)
         if serializer.is_valid():
+            # Identity BEFORE the write; a bad assertion is a controlled 400
+            # with zero rows (Morrow 10161). The stamp itself stays post-save
+            # via update_fields: on INSERT, BaseModel.save's crum branch
+            # overwrites a created_by passed as a mere field value.
+            try:
+                stamp_actor_id, _ = creation_identity(request)
+            except InvalidAssertedIdentity as e:
+                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
             serializer.save(project_id=project_id, issue_id=issue_id)
-            crawl_work_item_link_title.delay(serializer.instance.id, serializer.instance.url)
+            dispatch_after_commit(crawl_work_item_link_title, serializer.instance.id, serializer.instance.url)
             link = IssueLink.objects.get(pk=serializer.instance.id)
-            link.created_by_id = request.data.get("created_by", request.user.id)
+            link.created_by_id = stamp_actor_id
             link.save(update_fields=["created_by"])
-            issue_activity.delay(
+            enqueue_audit("issue_activity",
                 type="link.activity.created",
                 requested_data=json.dumps(serializer.data, cls=DjangoJSONEncoder),
                 issue_id=str(self.kwargs.get("issue_id")),
@@ -1276,8 +1339,8 @@ class IssueLinkDetailAPIEndpoint(BaseAPIView):
         serializer = IssueLinkSerializer(issue_link, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            crawl_work_item_link_title.delay(serializer.data.get("id"), serializer.data.get("url"))
-            issue_activity.delay(
+            dispatch_after_commit(crawl_work_item_link_title, serializer.data.get("id"), serializer.data.get("url"))
+            enqueue_audit("issue_activity",
                 type="link.activity.updated",
                 requested_data=requested_data,
                 actor_id=str(request.user.id),
@@ -1310,7 +1373,7 @@ class IssueLinkDetailAPIEndpoint(BaseAPIView):
         """
         issue_link = IssueLink.objects.get(workspace__slug=slug, project_id=project_id, issue_id=issue_id, pk=pk)
         current_instance = json.dumps(IssueLinkSerializer(issue_link).data, cls=DjangoJSONEncoder)
-        issue_activity.delay(
+        enqueue_audit("issue_activity",
             type="link.activity.deleted",
             requested_data=json.dumps({"link_id": str(pk)}),
             actor_id=str(request.user.id),
@@ -1445,34 +1508,58 @@ class IssueCommentListCreateAPIEndpoint(BaseAPIView):
 
         serializer = IssueCommentCreateSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save(project_id=project_id, issue_id=issue_id, actor=request.user)
-            issue_comment = IssueComment.objects.get(pk=serializer.instance.id)
-            # Update the created_at and the created_by and save the comment
-            issue_comment.created_at = request.data.get("created_at", timezone.now())
-            issue_comment.created_by_id = request.data.get("created_by", request.user.id)
-            issue_comment.actor_id = request.data.get("created_by", request.user.id)
-            issue_comment.save(update_fields=["created_at", "created_by"])
+            # Identity BEFORE the write; a bad assertion is a controlled 400
+            # with zero rows (Morrow 10161).
+            try:
+                stamp_actor_id, stamped_at = creation_identity(request)
+            except InvalidAssertedIdentity as e:
+                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            with transaction.atomic():
+                serializer.save(project_id=project_id, issue_id=issue_id, actor=request.user)
+                issue_comment = IssueComment.objects.get(pk=serializer.instance.id)
+                # Update the created_at and the created_by and save the comment
+                issue_comment.created_by_id, issue_comment.created_at = stamp_actor_id, stamped_at
+                # actor is what the Traveler renders, so it must match the bound
+                # author rather than being read from caller input a second time.
+                #
+                # "actor" MUST be in update_fields. It was not, in the first cut
+                # of this fix: the assignment above ran, persisted nothing, and
+                # the code claimed a guarantee it was not making. Harmless only
+                # because serializer.save() already set actor=request.user — a
+                # narrowed write silently discards whatever is not listed.
+                issue_comment.actor_id = issue_comment.created_by_id
+                issue_comment.save(update_fields=["created_at", "created_by", "actor"])
 
-            issue_activity.delay(
-                type="comment.activity.created",
-                requested_data=json.dumps(serializer.data, cls=DjangoJSONEncoder),
-                actor_id=str(issue_comment.created_by_id),
-                issue_id=str(self.kwargs.get("issue_id")),
-                project_id=str(self.kwargs.get("project_id")),
-                current_instance=None,
-                epoch=int(timezone.now().timestamp()),
-            )
+                comment_id = str(serializer.instance.id)
+                comment_data = json.dumps(serializer.data, cls=DjangoJSONEncoder)
+                comment_actor_id = str(issue_comment.created_by_id)
+                issue_id_str = str(self.kwargs.get("issue_id"))
+                project_id_str = str(self.kwargs.get("project_id"))
+                epoch = int(timezone.now().timestamp())
+                origin = base_host(request=request, is_app=True)
 
-            # Send the model activity
-            model_activity.delay(
-                model_name="issue_comment",
-                model_id=str(serializer.instance.id),
-                requested_data=request.data,
-                current_instance=None,
-                actor_id=request.user.id,
-                slug=slug,
-                origin=base_host(request=request, is_app=True),
-            )
+                enqueue_audit(
+                    "issue_activity",
+                    type="comment.activity.created",
+                    requested_data=comment_data,
+                    actor_id=comment_actor_id,
+                    issue_id=issue_id_str,
+                    project_id=project_id_str,
+                    current_instance=None,
+                    epoch=epoch,
+                )
+
+                # Send the model activity
+                dispatch_after_commit(
+                    model_activity,
+                    model_name="issue_comment",
+                    model_id=comment_id,
+                    requested_data=request.data,
+                    current_instance=None,
+                    actor_id=request.user.id,
+                    slug=slug,
+                    origin=origin,
+                )
 
             serializer = IssueCommentSerializer(issue_comment)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -1593,7 +1680,7 @@ class IssueCommentDetailAPIEndpoint(BaseAPIView):
         serializer = IssueCommentCreateSerializer(issue_comment, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            issue_activity.delay(
+            enqueue_audit("issue_activity",
                 type="comment.activity.updated",
                 requested_data=requested_data,
                 actor_id=str(request.user.id),
@@ -1603,7 +1690,7 @@ class IssueCommentDetailAPIEndpoint(BaseAPIView):
                 epoch=int(timezone.now().timestamp()),
             )
             # Send the model activity
-            model_activity.delay(
+            dispatch_after_commit(model_activity,
                 model_name="issue_comment",
                 model_id=str(pk),
                 requested_data=request.data,
@@ -1639,7 +1726,7 @@ class IssueCommentDetailAPIEndpoint(BaseAPIView):
         issue_comment = IssueComment.objects.get(workspace__slug=slug, project_id=project_id, issue_id=issue_id, pk=pk)
         current_instance = json.dumps(IssueCommentSerializer(issue_comment).data, cls=DjangoJSONEncoder)
         issue_comment.delete()
-        issue_activity.delay(
+        enqueue_audit("issue_activity",
             type="comment.activity.deleted",
             requested_data=json.dumps({"comment_id": str(pk)}),
             actor_id=str(request.user.id),
@@ -2020,7 +2107,7 @@ class IssueAttachmentDetailAPIEndpoint(BaseAPIView):
         issue_attachment.deleted_at = timezone.now()
         issue_attachment.save()
 
-        issue_activity.delay(
+        enqueue_audit("issue_activity",
             type="attachment.activity.deleted",
             requested_data=None,
             actor_id=str(self.request.user.id),
@@ -2034,7 +2121,7 @@ class IssueAttachmentDetailAPIEndpoint(BaseAPIView):
 
         # Get the storage metadata
         if not issue_attachment.storage_metadata:
-            get_asset_object_metadata.delay(str(issue_attachment.id))
+            dispatch_after_commit(get_asset_object_metadata, str(issue_attachment.id))
         issue_attachment.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -2158,7 +2245,7 @@ class IssueAttachmentDetailAPIEndpoint(BaseAPIView):
 
         # Send this activity only if the attachment is not uploaded before
         if not issue_attachment.is_uploaded:
-            issue_activity.delay(
+            enqueue_audit("issue_activity",
                 type="attachment.activity.created",
                 requested_data=None,
                 actor_id=str(self.request.user.id),
@@ -2176,7 +2263,7 @@ class IssueAttachmentDetailAPIEndpoint(BaseAPIView):
 
         # Get the storage metadata
         if not issue_attachment.storage_metadata:
-            get_asset_object_metadata.delay(str(issue_attachment.id))
+            dispatch_after_commit(get_asset_object_metadata, str(issue_attachment.id))
         issue_attachment.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -2499,7 +2586,7 @@ class IssueRelationListCreateAPIEndpoint(BaseAPIView):
             ignore_conflicts=True,
         )
 
-        issue_activity.delay(
+        enqueue_audit("issue_activity",
             type="issue_relation.activity.created",
             requested_data=json.dumps(request.data, cls=DjangoJSONEncoder),
             actor_id=str(request.user.id),

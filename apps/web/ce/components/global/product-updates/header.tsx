@@ -21,8 +21,15 @@ export const ProductUpdatesHeader = observer(function ProductUpdatesHeader() {
             "mx-2 rounded-full bg-accent-primary/20 px-2 py-0.5 text-center text-11 font-medium text-accent-primary"
           )}
         >
-          {t("version")}: v{packageJson.version}
+          {/* biplane: OUR release wears the accent pill; upstream's base never
+              again carries the word "Version" where a deployment is checked
+              (Vex RC 3811 — the fourth misreading was one click from the
+              third). Dev builds say so. */}
+          {import.meta.env.VITE_BIPLANE_VERSION
+            ? `Biplane ${import.meta.env.VITE_BIPLANE_VERSION}`
+            : `Biplane dev build ${import.meta.env.VITE_BIPLANE_BUILD || "dev"}`}
         </div>
+        <div className="text-11 text-placeholder">on Plane v{packageJson.version}</div>
       </div>
     </div>
   );

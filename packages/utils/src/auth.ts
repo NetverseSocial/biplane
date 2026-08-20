@@ -36,7 +36,7 @@ export const getPasswordStrength = (password: string): E_PASSWORD_STRENGTH => {
   const hasUpperCase = /[A-Z]/.test(password);
   const hasLowerCase = /[a-z]/.test(password);
   const hasDigit = /[0-9]/.test(password);
-  const hasSpecialChar = /[!@#$%^&*()\-_+=\[\]{}|;:'",.<>?/]/.test(password);
+  const hasSpecialChar = /[!@#$%^&*()\-_+=[\]{}|;:'",.<>?/]/.test(password);
 
   if (hasUpperCase && hasLowerCase && hasDigit && hasSpecialChar) {
     return E_PASSWORD_STRENGTH.STRENGTH_VALID;
@@ -78,7 +78,7 @@ export const getPasswordCriteria = (password: string): PasswordCriteria[] => [
   {
     key: "special",
     label: "Min 1 special character",
-    isValid: /[!@#$%^&*()\-_+=\[\]{}|;:'",.<>?/]/.test(password),
+    isValid: /[!@#$%^&*()\-_+=[\]{}|;:'",.<>?/]/.test(password),
   },
 ];
 
@@ -102,6 +102,18 @@ const errorCodeMessages: {
   [EAuthErrorCodes.PASSWORD_TOO_WEAK]: {
     title: `Password too weak`,
     message: () => `Please use a stronger password.`,
+  },
+  // biplane (BIP-1): ported verbatim from the web helper's copy so this handler is a
+  // superset and the web copy can re-export. Changing the wording here changes it for
+  // users — these strings are the live text, not placeholders.
+  [EAuthErrorCodes.REQUIRED_FIRST_NAME_SIGN_UP]: {
+    title: "First name required",
+    message: () => "Please enter your first name to create your account.",
+  },
+  [EAuthErrorCodes.INVALID_NAME_SIGN_UP]: {
+    title: "Invalid name",
+    message: () =>
+      "Names can contain letters, numbers, spaces, apostrophes, periods, and hyphens (max 150 characters).",
   },
   [EAuthErrorCodes.SMTP_NOT_CONFIGURED]: {
     title: `SMTP not configured`,
@@ -286,19 +298,19 @@ const errorCodeMessages: {
   },
   [EAuthErrorCodes.MAGIC_LINK_LOGIN_DISABLED]: {
     title: `Magic link login disabled`,
-    message: () => `Magic link login is disabled. Please use password to login.`,
+    message: () => `Magic link login disabled. Please contact your administrator.`,
   },
   [EAuthErrorCodes.PASSWORD_LOGIN_DISABLED]: {
     title: `Password login disabled`,
-    message: () => `Password login is disabled. Please use magic link to login.`,
+    message: () => `Password login disabled. Please contact your administrator.`,
   },
   [EAuthErrorCodes.ADMIN_USER_DEACTIVATED]: {
     title: `Admin user deactivated`,
-    message: () => `Admin user account has been deactivated. Please contact administrator.`,
+    message: () => `Your account is deactivated`,
   },
   [EAuthErrorCodes.RATE_LIMIT_EXCEEDED]: {
-    title: `Rate limit exceeded`,
-    message: () => `Too many requests. Please try again later.`,
+    title: ``,
+    message: () => `Rate limit exceeded. Please try again later.`,
   },
 };
 
@@ -308,6 +320,19 @@ export const authErrorHandler = (errorCode: EAuthErrorCodes, email?: string): TA
     // biplane: the weak-password bounce must produce a handler or the sign-up
     // password step is never reopened (Sable RC 3029 — this copy lacked it).
     EAuthErrorCodes.PASSWORD_TOO_WEAK,
+    // biplane (BIP-1): seven codes the web helper's copy handles and this one did not.
+    // Five of them already had message entries here but were absent from this list —
+    // a message without list membership is unreachable, the same sibling asymmetry the
+    // web copy's comment warns about. Two more (the name codes) were missing entirely.
+    // Until all seven are here, the web helper cannot re-export without silently
+    // dropping live user-facing errors.
+    EAuthErrorCodes.ADMIN_USER_DEACTIVATED,
+    EAuthErrorCodes.MAGIC_LINK_LOGIN_DISABLED,
+    EAuthErrorCodes.MISSING_PASSWORD,
+    EAuthErrorCodes.PASSWORD_LOGIN_DISABLED,
+    EAuthErrorCodes.RATE_LIMIT_EXCEEDED,
+    EAuthErrorCodes.REQUIRED_FIRST_NAME_SIGN_UP,
+    EAuthErrorCodes.INVALID_NAME_SIGN_UP,
     EAuthErrorCodes.INSTANCE_NOT_CONFIGURED,
     EAuthErrorCodes.INVALID_EMAIL,
     EAuthErrorCodes.EMAIL_REQUIRED,

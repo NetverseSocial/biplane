@@ -19,9 +19,45 @@ from plane.license.api.views import (
     InstanceAdminUserSessionEndpoint,
     InstanceWorkSpaceAvailabilityCheckEndpoint,
     InstanceWorkSpaceEndpoint,
+    UpdateCheckStatusEndpoint,
+    ApplyUpdateEndpoint,
+    ApplyStatusEndpoint,
+    AutoApplySettingEndpoint,
+    OurChangelogEndpoint,
+    UpdateSourceSettingEndpoint,
 )
 
 urlpatterns = [
+    path(
+        "updates/status/",
+        UpdateCheckStatusEndpoint.as_view(),
+        name="update-check-status",
+    ),
+    path(
+        "updates/apply/",
+        ApplyUpdateEndpoint.as_view(),
+        name="update-apply",
+    ),
+    path(
+        "updates/apply/status/",
+        ApplyStatusEndpoint.as_view(),
+        name="update-apply-status",
+    ),
+    path(
+        "updates/auto/",
+        AutoApplySettingEndpoint.as_view(),
+        name="update-auto-setting",
+    ),
+    path(
+        "updates/source/",
+        UpdateSourceSettingEndpoint.as_view(),
+        name="update-source-setting",
+    ),
+    path(
+        "updates/changelog/",
+        OurChangelogEndpoint.as_view(),
+        name="update-changelog",
+    ),
     path("", InstanceEndpoint.as_view(), name="instance"),
     path("admins/", InstanceAdminEndpoint.as_view(), name="instance-admins"),
     path("admins/me/", InstanceAdminUserMeEndpoint.as_view(), name="instance-admins"),

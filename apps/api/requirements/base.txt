@@ -71,3 +71,13 @@ opentelemetry-exporter-otlp==1.28.1
 drf-spectacular==0.28.0
 # html sanitizer
 nh3==0.2.18
+# Markdown block tokenizer for the completion grammar (BIP-45). Used as a
+# TOKENIZER ONLY — no renderer is ever invoked, so this adds no HTML surface.
+# mdurl is markdown-it-py's one mandatory runtime dependency; it is listed
+# explicitly rather than left implicit (Vex 3353/3355).
+# NOTE: Vex's condition 1 asks for --require-hashes pinning. pip's hash mode is
+# all-or-nothing per file, so honouring it means hashing every requirement in
+# this file — a repo-wide change outside BIP-45. Filed separately rather than
+# silently dropped; exact-version pins hold until then.
+markdown-it-py==4.2.0
+mdurl==0.1.2

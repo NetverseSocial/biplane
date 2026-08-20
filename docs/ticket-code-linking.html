@@ -1,0 +1,185 @@
+<title>Biplane: how tickets link to code — verdict</title>
+<style>
+  :root{
+    --ink:#12181d; --ink-soft:#46545f; --ink-faint:#6f7f8b;
+    --ground:#f7f6f3; --panel:#ffffff; --line:#dfe0dc;
+    --accent:#1f5f7a;            /* instrument blue */
+    --warm:#b4691f;              /* brass — the gold-plating note */
+    --good:#2f6b46; --warn:#8a6a12; --dead:#8a8f93;
+    --shadow:0 1px 2px rgba(18,24,29,.06),0 8px 24px rgba(18,24,29,.05);
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --ink:#e7eaec; --ink-soft:#a7b3bb; --ink-faint:#7d8b95;
+      --ground:#10151a; --panel:#171e24; --line:#2a343c;
+      --accent:#6fb6d4; --warm:#d9a25c; --good:#7fc39a; --warn:#d6b45e; --dead:#6d767d;
+      --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.3);
+    }
+  }
+  :root[data-theme="light"]{
+    --ink:#12181d; --ink-soft:#46545f; --ink-faint:#6f7f8b;
+    --ground:#f7f6f3; --panel:#ffffff; --line:#dfe0dc;
+    --accent:#1f5f7a; --warm:#b4691f; --good:#2f6b46; --warn:#8a6a12; --dead:#8a8f93;
+  }
+  :root[data-theme="dark"]{
+    --ink:#e7eaec; --ink-soft:#a7b3bb; --ink-faint:#7d8b95;
+    --ground:#10151a; --panel:#171e24; --line:#2a343c;
+    --accent:#6fb6d4; --warm:#d9a25c; --good:#7fc39a; --warn:#d6b45e; --dead:#6d767d;
+  }
+
+  body{background:var(--ground); color:var(--ink);
+    font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+    line-height:1.6; margin:0; padding:2.5rem 1.25rem 4rem;}
+  .wrap{max-width:52rem; margin:0 auto; display:flex; flex-direction:column; gap:2rem;}
+
+  .eyebrow{font-size:.72rem; letter-spacing:.13em; text-transform:uppercase;
+    color:var(--ink-faint); margin:0 0 .5rem;}
+  h1{font-family:ui-serif,"Iowan Old Style",Georgia,serif; font-weight:600;
+    font-size:clamp(1.7rem,4vw,2.4rem); line-height:1.15; text-wrap:balance; margin:0 0 .6rem;}
+  .sub{color:var(--ink-soft); font-size:1.05rem; margin:0; max-width:40rem;}
+  h2{font-family:ui-serif,"Iowan Old Style",Georgia,serif; font-weight:600;
+    font-size:1.25rem; margin:0 0 .75rem; text-wrap:balance;}
+
+  .verdict{background:var(--panel); border:1px solid var(--line);
+    border-left:3px solid var(--good); border-radius:3px;
+    padding:1.25rem 1.4rem; box-shadow:var(--shadow);
+    display:flex; flex-direction:column; gap:.5rem;}
+  .verdict strong{color:var(--good);}
+  .verdict.brass{border-left-color:var(--warm);}
+  .verdict.brass strong{color:var(--warm);}
+
+  .panel{background:var(--panel); border:1px solid var(--line); border-radius:3px;
+    padding:1.4rem; box-shadow:var(--shadow); overflow-x:auto;}
+  .mermaid{display:flex; justify-content:center;}
+
+  table{border-collapse:collapse; width:100%; font-size:.94rem;}
+  th{text-align:left; font-size:.72rem; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--ink-faint); font-weight:600; padding:0 .8rem .55rem 0;
+    border-bottom:1px solid var(--line);}
+  td{padding:.8rem .8rem .8rem 0; border-bottom:1px solid var(--line);
+    vertical-align:top; color:var(--ink-soft);}
+  td:first-child{color:var(--ink); width:38%;}
+  tr:last-child td{border-bottom:none;}
+  .tag{display:inline-block; font-size:.68rem; letter-spacing:.08em; text-transform:uppercase;
+    font-weight:700; padding:.18rem .45rem; border-radius:2px; white-space:nowrap;}
+  .t-no{color:var(--good); background:color-mix(in srgb,var(--good) 14%,transparent);}
+  .t-yes{color:var(--warm); background:color-mix(in srgb,var(--warm) 16%,transparent);}
+
+  ul{margin:0; padding-left:1.1rem; color:var(--ink-soft);}
+  li{margin-bottom:.5rem;}
+  li strong{color:var(--ink);}
+  .foot{color:var(--ink-faint); font-size:.85rem; border-top:1px solid var(--line);
+    padding-top:1rem;}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.88em;
+    color:var(--accent);}
+</style>
+
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">Biplane · architecture check · 10 Aug 2026</p>
+    <h1>How a ticket gets linked to code</h1>
+    <p class="sub">Three claims were on the table tonight — that we rebuilt something Plane already
+    shipped, that we grew a second filing system beside the first, and that the result is spaghetti.
+    I opened the code. Two are false. The third is real but is not what it looked like.</p>
+  </header>
+
+  <div class="verdict">
+    <p style="margin:0"><strong>The work is sound.</strong> The linking code uses Plane's own
+    ticket tables and writes the link onto the ticket's own timeline. It did not duplicate anything,
+    because there was nothing working to duplicate — Plane's free version ships the filing cabinet
+    for GitHub linking and keeps the machine in their paid product.</p>
+  </div>
+
+  <div class="verdict brass">
+    <p style="margin:0"><strong>The cost is real, and it's gold-plating.</strong> Linking a ticket
+    to a pull request is an afternoon. Making it survive duplicate deliveries, hostile payloads,
+    retries and three different code hosts is weeks. Those were never separated into two decisions,
+    so the hour-long version was approved and the multi-week version was built.</p>
+  </div>
+
+  <section class="panel">
+    <h2>What actually happens now</h2>
+    <pre class="mermaid">
+flowchart TB
+  FJ["Forgejo<br/>(our code host)"]
+  IN["Delivery inbox<br/><i>new — retries, dedupe, leases</i>"]
+  PR["Reference reader<br/><i>new — finds BIP-nn in commits and branches</i>"]
+  LK["Look up the ticket<br/>by its number"]
+  TL["Entry on the ticket's timeline<br/><i>Plane's own table</i>"]
+  BD["The board<br/>ticket now shows its code"]
+  GH["GitHub linking tables<br/><i>ship with Plane · four empty tables · no engine</i>"]
+
+  FJ -->|"a push or PR happens"| IN
+  IN --> PR
+  PR --> LK
+  LK --> TL
+  TL --> BD
+  GH -.->|"unused — nothing drives them"| BD
+
+  classDef new fill:#1f5f7a,stroke:#1f5f7a,color:#fff;
+  classDef stock fill:#2f6b46,stroke:#2f6b46,color:#fff;
+  classDef dead fill:none,stroke:#8a8f93,color:#8a8f93,stroke-dasharray:4 4;
+  class IN,PR new;
+  class LK,TL,BD stock;
+  class GH dead;
+    </pre>
+    <p style="color:var(--ink-faint); font-size:.85rem; margin:1rem 0 0">
+      Blue is what we wrote. Green is Plane's, reused as-is. Grey dashed is the stock GitHub
+      linking that looks like a wheel but has no engine behind it.</p>
+  </section>
+
+  <section class="panel">
+    <h2>The three claims, tested</h2>
+    <table>
+      <thead><tr><th>Claim</th><th>Verdict</th><th>What the code shows</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>We rebuilt linking that Plane already had</td>
+          <td><span class="tag t-no">False</span></td>
+          <td>Stock GitHub linking is four database tables and zero logic. No handler, no sync, no
+          background job. Nothing to extend.</td>
+        </tr>
+        <tr>
+          <td>We built a second filing system beside the first</td>
+          <td><span class="tag t-no">False</span></td>
+          <td>The linking code imports Plane's own ticket, project and timeline tables and writes
+          the link as a normal ticket-timeline entry.</td>
+        </tr>
+        <tr>
+          <td>The one new table duplicates something</td>
+          <td><span class="tag t-no">False</span></td>
+          <td>It's an inbox for incoming events — attempts, retry time, lease, result. A different
+          job from recording a link.</td>
+        </tr>
+        <tr>
+          <td>It's over-built for where the project is</td>
+          <td><span class="tag t-yes">True</span></td>
+          <td>Signature checking, retry leases, deduplication, a 2,000-commit guard, and an
+          abstraction for three code hosts we don't run yet.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="panel">
+    <h2>What to do with it</h2>
+    <ul>
+      <li><strong>Keep the work.</strong> The design is right and the link lands where the board can
+      already see it. Deleting it would cost more than merging it.</li>
+      <li><strong>The board question answers itself once this merges.</strong> Tickets stop being
+      bare numbers — each one carries its own code.</li>
+      <li><strong>Split the estimate next time.</strong> "Link a ticket to a PR" and "make it
+      survive a hostile internet" are two decisions. Ask for the first; approve the second
+      separately, on purpose.</li>
+      <li><strong>Rename one of the two "bridges."</strong> The thing that runs commands on the Mac
+      and the thing that connects Biplane to Forgejo share a name, and that alone cost us twenty
+      minutes tonight.</li>
+    </ul>
+  </section>
+
+  <p class="foot">Read from the repository at <code>example/biplane</code> — the stock linking tables,
+  the new linking code, and the new inbox table. Claims here are from the source, not from summaries.
+  Not yet read: the per-host abstraction in full, and the tests.</p>
+
+</div>

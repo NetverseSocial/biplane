@@ -69,10 +69,36 @@ class IssueSerializer(BaseSerializer):
 
     class Meta:
         model = Issue
-        read_only_fields = ["id", "workspace", "project", "updated_by", "updated_at"]
-        exclude = ["description_json", "description_stripped"]
+        # created_by/created_at are READ-ONLY here on purpose (BIP-18, Morrow
+        # 10161): identity is bound at the write boundary (creation_identity)
+        # and rides serializer.save(created_by_id=...) — never the request
+        # body. Ordinary callers' values are thereby ignored, not validated;
+        # a service token's assertion is validated by the boundary itself.
+        read_only_fields = [
+            "id",
+            "workspace",
+            "project",
+            "created_by",
+            "created_at",
+            "updated_by",
+            "updated_at",
+            "description_stripped",
+        ]
+        # BIP-59: description_stripped IS exposed. It is the plain-text projection of
+        # description_html and the obvious field a text consumer reaches for. Excluding
+        # it left the external API with no plain-text description at all, so a reader
+        # keying on description_stripped saw an absent key (null to jq / dict.get) while
+        # the body was present -- a well-formed ticket read as empty. description_json
+        # (heavy ProseMirror JSON) stays excluded. The column is maintained on write by
+        # Issue.save() and backfilled for legacy null rows by migration 0129.
+        exclude = ["description_json"]
 
     def validate(self, data):
+        if self.instance is not None and {"state", "state_id"}.intersection(self.initial_data):
+            raise serializers.ValidationError(
+                {"state": "state transitions require the durable board operation endpoint"}
+            )
+
         if (
             data.get("start_date", None) is not None
             and data.get("target_date", None) is not None
@@ -151,6 +177,12 @@ class IssueSerializer(BaseSerializer):
     def create(self, validated_data):
         assignees = validated_data.pop("assignees", None)
         labels = validated_data.pop("labels", None)
+        # The write-boundary identity (BIP-18, Morrow 10161), passed via
+        # serializer.save(created_by_id=...). It must ride BaseModel.save's
+        # created_by_id KWARG: a plain field value is overwritten there by the
+        # crum current-user on insert, which is exactly how the pre-override
+        # caller used to leak into this row and every child row below.
+        stamp_created_by_id = validated_data.pop("created_by_id", None)
 
         project_id = self.context["project_id"]
         workspace_id = self.context["workspace_id"]
@@ -163,7 +195,8 @@ class IssueSerializer(BaseSerializer):
             issue_type = IssueType.objects.filter(project_issue_types__project_id=project_id, is_default=True).first()
             issue_type = issue_type
 
-        issue = Issue.objects.create(**validated_data, project_id=project_id, type=issue_type)
+        issue = Issue(**validated_data, project_id=project_id, type=issue_type)
+        issue.save(created_by_id=stamp_created_by_id, force_insert=True)
 
         # Issue Audit Users
         created_by_id = issue.created_by_id

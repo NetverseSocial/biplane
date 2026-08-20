@@ -84,6 +84,8 @@ package-lock.json
 
 .secrets
 tmp/
+.biplane-backups/
+.biplane-update.lock
 
 ## packages
 dist

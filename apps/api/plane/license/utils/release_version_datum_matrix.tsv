@@ -1,0 +1,18 @@
+# COMMENTS ARE COLUMN-0 ONLY. A space-indented '#' is a hard failure, not a
+# comment — the counter and the loop agree on this deliberately (Vex RC 3505).
+# verdict	datum-bytes-as-printf-format	note
+accept	9	the canonical width
+accept	1	lower bound
+accept	99	upper bound (two digits)
+refuse	 9	leading whitespace
+refuse	9 	trailing whitespace
+refuse	09	leading zero is not canonical
+refuse	0	zero components cannot exist
+refuse	9x	trailing garbage
+refuse	MAX_COMPONENT_DIGITS=9	a key/value shape is not a single value
+refuse	9\n9	more than one value
+refuse	9\n\n	two trailing newlines: command substitution strips ALL of them
+refuse	9\0	a NUL byte: command substitution drops it
+accept	9\n	one trailing newline, as a text file has
+refuse	100	three digits is outside the reader bound
+refuse		empty

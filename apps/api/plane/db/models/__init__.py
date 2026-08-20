@@ -91,3 +91,7 @@ from .device import Device, DeviceSession
 from .sticky import Sticky
 
 from .description import Description, DescriptionVersion
+from .forgejo_delivery import ForgejoDelivery
+from .poll_cursor import PollCursor
+from .board_operation import BoardOperation
+from .audit_outbox import AuditOutbox

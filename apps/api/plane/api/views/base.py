@@ -9,7 +9,7 @@ import logging
 # Django imports
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.urls import resolve
 from django.utils import timezone
 
@@ -47,7 +47,118 @@ class TimezoneMixin:
             timezone.deactivate()
 
 
-class BaseAPIView(TimezoneMixin, GenericAPIView, ReadReplicaControlMixin, BasePaginator):
+UNSAFE_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
+
+
+def dispatch_after_commit(task, *args, **kwargs):
+    """Register task.delay(*args, **kwargs) to run AFTER the request's
+    transaction commits — the ONLY way a token-API handler may dispatch
+    async work (BIP-18, Morrow's option-(a) ruling; enforced by an AST gate
+    in the test suite).
+
+    Why it exists: the mutation boundary wraps every unsafe request in one
+    transaction, so an immediate .delay() would hand the worker a row that
+    is not committed yet (race: absent/stale reads) and would survive a
+    rollback (a task for a mutation that never happened). Registering on
+    commit restores the visibility order autocommit used to give call sites.
+
+    Arguments are evaluated HERE, eagerly, before registration — a bare
+    lambda over caller locals would capture variables that may change before
+    commit. robust=True: one failing callback must neither turn a committed
+    write into a 500 nor suppress later callbacks.
+
+    What this does and does not fix: it restores PRE-COMMIT VISIBILITY order
+    (the worker never sees an uncommitted row) and ROLLBACK EMISSION (a
+    rolled-back mutation dispatches nothing). It is NOT durability — a broker
+    outage after commit still loses the dispatch until the audit outbox
+    worker lands (PR 23 onward).
+
+    Refuses outside a transaction (Morrow): Django's on_commit runs the
+    callback IMMEDIATELY when no atomic block is open, which silently
+    recreates the exact false-deferral trap this helper exists to eliminate
+    — e.g. a future caller outside the base boundary. Same fail-loud rule as
+    enqueue_audit; the name stays truthful."""
+    if not transaction.get_connection().in_atomic_block:
+        raise RuntimeError(
+            "dispatch_after_commit called outside a transaction: on_commit "
+            "would run the callback immediately (false deferral). Token-API "
+            "handlers run inside MutationDispatchMixin's boundary — a caller "
+            "hitting this is outside it."
+        )
+    transaction.on_commit(lambda: task.delay(*args, **kwargs), robust=True)
+
+
+class MutationDispatchMixin:
+    """One transaction boundary for every unsafe request on the token API.
+
+    BIP-18. Both reviewers ruled the same boundary: not per-call-site atomic
+    blocks, and not global ATOMIC_REQUESTS — one shared mixin used by both
+    token bases, wrapping only POST/PUT/PATCH/DELETE.
+
+    WHY A PLAIN `with transaction.atomic()` IS NOT ENOUGH
+
+    DRF catches exceptions inside its own dispatch and RETURNS an error
+    response. The atomic block therefore sees an ordinary return and commits.
+    Witnessed against a live database rather than assumed:
+
+        write a row, return a handled 400  ->  the row was COMMITTED
+        the same, plus set_rollback(True)  ->  rolled back
+
+    So an error response must explicitly mark the transaction rollback-only.
+    The product rule this states: an unsafe token-API request that returns an
+    error does not keep partial writes.
+
+    WHY THE MARK IS AT THE END, NOT INSIDE handle_exception
+
+    DRF may still finalize the response after handling, and code must not query
+    a connection already marked rollback-only. So handle_exception only records
+    that it ran; the rollback is marked after the finalized response is in hand
+    and before the atomic block exits. An exception that escapes dispatch
+    entirely unwinds the block on its own and needs no help.
+
+    Both conditions matter and neither implies the other: DRF can map a handled
+    exception to a 2xx, and a handler can return 4xx without any exception.
+
+    This also consolidates the two near-identical dispatch bodies that used to
+    live in BaseAPIView and BaseViewSet. That duplication was not harmless —
+    one of them returned the exception object instead of the handled response,
+    and the other did not. Consolidating removes the branch rather than
+    preserving it.
+    """
+
+    def handle_exception(self, exc):
+        # Record only. See the docstring for why the rollback is not marked here.
+        self._drf_handled_exception = True
+        return super().handle_exception(exc)
+
+    def _dispatch_inner(self, request, *args, **kwargs):
+        try:
+            response = super().dispatch(request, *args, **kwargs)
+            if settings.DEBUG:
+                from django.db import connection
+
+                print(f"{request.method} - {request.get_full_path()} of Queries: {len(connection.queries)}")
+            return response
+        except Exception as exc:
+            # Reached only for exceptions raised outside DRF's own try block.
+            # Return the HANDLED RESPONSE — returning `exc` gives Django
+            # something that is not a response at all.
+            return self.handle_exception(exc)
+
+    def dispatch(self, request, *args, **kwargs):
+        self._drf_handled_exception = False
+
+        if request.method not in UNSAFE_METHODS:
+            return self._dispatch_inner(request, *args, **kwargs)
+
+        with transaction.atomic():
+            response = self._dispatch_inner(request, *args, **kwargs)
+            if self._drf_handled_exception or getattr(response, "status_code", 200) >= 400:
+                transaction.set_rollback(True)
+            return response
+
+
+class BaseAPIView(MutationDispatchMixin, TimezoneMixin, GenericAPIView, ReadReplicaControlMixin, BasePaginator):
     authentication_classes = [APIKeyAuthentication]
 
     permission_classes = [IsAuthenticated]
@@ -113,18 +224,6 @@ class BaseAPIView(TimezoneMixin, GenericAPIView, ReadReplicaControlMixin, BasePa
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-    def dispatch(self, request, *args, **kwargs):
-        try:
-            response = super().dispatch(request, *args, **kwargs)
-            if settings.DEBUG:
-                from django.db import connection
-
-                print(f"{request.method} - {request.get_full_path()} of Queries: {len(connection.queries)}")
-            return response
-        except Exception as exc:
-            response = self.handle_exception(exc)
-            return exc
-
     def finalize_response(self, request, response, *args, **kwargs):
         # Call super to get the default response
         response = super().finalize_response(request, response, *args, **kwargs)
@@ -164,7 +263,7 @@ class BaseAPIView(TimezoneMixin, GenericAPIView, ReadReplicaControlMixin, BasePa
         return expand if expand else None
 
 
-class BaseViewSet(TimezoneMixin, ReadReplicaControlMixin, ModelViewSet, BasePaginator):
+class BaseViewSet(MutationDispatchMixin, TimezoneMixin, ReadReplicaControlMixin, ModelViewSet, BasePaginator):
     model = None
 
     authentication_classes = [APIKeyAuthentication]
@@ -240,20 +339,6 @@ class BaseViewSet(TimezoneMixin, ReadReplicaControlMixin, ModelViewSet, BasePagi
                 {"error": "Something went wrong please try again later"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-
-    def dispatch(self, request, *args, **kwargs):
-        try:
-            response = super().dispatch(request, *args, **kwargs)
-
-            if settings.DEBUG:
-                from django.db import connection
-
-                print(f"{request.method} - {request.get_full_path()} of Queries: {len(connection.queries)}")
-
-            return response
-        except Exception as exc:
-            response = self.handle_exception(exc)
-            return response
 
     @property
     def workspace_slug(self):

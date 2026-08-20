@@ -153,7 +153,8 @@ const errorCodeMessages: {
   },
   [EAuthenticationErrorCodes.INVALID_NAME_SIGN_UP]: {
     title: "Invalid name",
-    message: () => "Names can contain letters, spaces, apostrophes, periods, and hyphens (max 150 characters).",
+    message: () =>
+      "Names can contain letters, numbers, spaces, apostrophes, periods, and hyphens (max 150 characters).",
   },
   [EAuthenticationErrorCodes.PASSWORD_TOO_WEAK]: {
     title: `Password too weak`,

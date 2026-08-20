@@ -88,6 +88,17 @@ export const HelpMenuRoot = observer(function HelpMenuRoot() {
             <span className="text-11">What&apos;s new in Biplane</span>
           </button>
         </CustomMenu.MenuItem>
+        {/* John's design (2026-08-16): a plain menu row, like its neighbours,
+            opening Settings → Updates — no inline button machinery here. */}
+        <CustomMenu.MenuItem>
+          <button
+            type="button"
+            onClick={() => (window.location.href = "/settings/profile/updates")}
+            className="justify-sbg-layer-211 flex w-full items-center hover:bg-layer-1"
+          >
+            <span className="text-11">Update</span>
+          </button>
+        </CustomMenu.MenuItem>
         <div className="mt-1 border-t border-subtle px-1 pt-2 text-11 text-secondary">
           <PlaneVersionNumber />
         </div>

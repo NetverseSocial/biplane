@@ -1,0 +1,38 @@
+# Project denylist for tools/scrub-check.sh — one POSIX extended regex per
+# line, `#` comments and blanks ignored. These are the references a public
+# clone of this repository must not carry: internal hostnames and addresses,
+# private org and infrastructure names, real people's emails, and home paths.
+#
+# NARROW, DON'T DELETE: if a hit is genuinely fine (e.g. a word collision),
+# tighten the pattern in a reviewed commit rather than removing the line —
+# every exception then has an author and a reason in history.
+
+# --- internal hosts and addresses -------------------------------------------
+mule-farm
+pi5\.local
+pi5:3000
+10\.211\.55\.[0-9]+
+# Only OUR subnets: 192.168.1.x is the canonical RFC1918 example and appears
+# legitimately in upstream comments and in tests OF private-IP validation —
+# flagging those buries real leaks in noise. Ours are .115 (deploy LAN) and
+# .68 (the LAN the aio README once leaked).
+192\.168\.(115|68)\.[0-9]+
+# host.docker.internal is Docker's own standard name, not an internal ref —
+# it was listed here by over-caution and produced only false positives.
+
+# --- private org / infra names ----------------------------------------------
+# \b guards the org acronym against word collisions; the paths are how it
+# actually appears in leakage (mounts, URLs, group-share).
+/sbl/
+\b[Ss][Bb][Ll]\b
+group-share
+netverse-handbook
+
+# --- real identities ---------------------------------------------------------
+# Any netverse.net address except the deliberately non-deliverable forms
+# (.invalid is handled by its own TLD; x@ / noreply@ are placeholders).
+[A-Za-z0-9._%+-]+@netverse\.net
+
+# --- home directories / host paths -------------------------------------------
+/Users/john
+/home/(aria|sable|vex|morrow|rowan|sia|7of9|haiku|wren)
