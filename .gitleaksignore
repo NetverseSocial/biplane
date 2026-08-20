@@ -12,3 +12,19 @@
 6154c9ea57e31ae65f999e27fa4f881637e8cb5c:deployments/aio/community/variables.env:generic-api-key:53
 # upstream Plane community example key — value sha256/12: 04eae10378b0
 6154c9ea57e31ae65f999e27fa4f881637e8cb5c:deployments/cli/community/variables.env:generic-api-key:57
+
+# TREE-form entries (file:rule:line) for the SAME values as the commit-form
+# entries above — the two forms do not cross-suppress (measured, PR #150),
+# and the tree layer (--tree-only working runs) reads only this form.
+# Two of the original seven are absent here: covered by inline
+# gitleaks:allow annotations at their source lines.
+# upstream Plane S3-presign docstring example — value sha256/12: 1a5d44a2dca1
+apps/api/plane/api/views/issue.py:aws-access-token:1880
+# upstream Plane community example — value sha256/12: f7c4e45e4e24
+deployments/aio/community/README.md:generic-api-key:76
+# upstream Plane community example key — value sha256/12: 04eae10378b0
+deployments/aio/community/variables.env:generic-api-key:29
+# upstream Plane community example key — value sha256/12: e240a293b0f5
+deployments/aio/community/variables.env:generic-api-key:53
+# upstream Plane community example key — value sha256/12: 04eae10378b0
+deployments/cli/community/variables.env:generic-api-key:57
